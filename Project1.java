@@ -29,20 +29,18 @@ public class Project1 {
         private final JPasswordField txtPassword = new JPasswordField();
 
         public LoginFrame() {
-            setTitle("Nombre - Registro de acceso");
-            setSize(1100, 650);
-            setLocationRelativeTo(null);
+            setTitle("HolmWood - Registro de acceso");
             setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-            setResizable(false);
-            getContentPane().setBackground(new Color(244, 239, 233));
+            setResizable(true);
+                getContentPane().setBackground(new Color(250, 247, 242));
 
             JPanel root = new JPanel(new BorderLayout());
-                root.setBackground(new Color(246, 244, 239));
+                root.setBackground(new Color(250, 247, 242));
 
             JPanel left = new JPanel();
-                left.setBackground(new Color(246, 244, 239));
-                left.setBorder(BorderFactory.createEmptyBorder(18, 18, 18, 12));
-                left.setPreferredSize(new Dimension(520, 0));
+                left.setBackground(new Color(250, 247, 242));
+                left.setBorder(BorderFactory.createEmptyBorder());
+            left.setPreferredSize(new Dimension(500, 0));
             left.setLayout(new BorderLayout());
 
             BufferedImage loginImage = loadLoginImage();
@@ -67,82 +65,124 @@ public class Project1 {
                         g.setColor(new Color(112, 91, 70));
                         g.fillRect(0, 0, getWidth(), getHeight());
                     }
-                    g.setPaint(new GradientPaint(
-                            0, 0, new Color(28, 20, 14, 95),
-                            0, getHeight(), new Color(28, 20, 14, 125)
-                    ));
-                    g.fillRect(0, 0, getWidth(), getHeight());
                     g.dispose();
                 }
             };
             leftCard.setOpaque(false);
-            leftCard.setBorder(BorderFactory.createEmptyBorder(24, 20, 24, 20));
+            leftCard.setBorder(BorderFactory.createEmptyBorder(18, 20, 18, 20));
 
-                JLabel icon = new JLabel(createFurnitureLogo());
-                icon.setPreferredSize(new Dimension(112, 112));
+            JLabel icon = new JLabel(createFurnitureLogo());
+            icon.setPreferredSize(new Dimension(190, 155));
+            icon.setMaximumSize(new Dimension(190, 155));
+            icon.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-            JLabel title = new JLabel("HOGARWOOD");
-                title.setFont(new Font("Serif", Font.BOLD, 34));
+            JLabel title = new JLabel("HOLMWOOD");
+            title.setFont(new Font("Arial", Font.BOLD, 46));
             title.setHorizontalAlignment(SwingConstants.CENTER);
-                title.setForeground(new Color(255, 250, 239));
+            title.setForeground(new Color(62, 35, 20));
+            title.setAlignmentX(Component.CENTER_ALIGNMENT);
+            title.setPreferredSize(new Dimension(0, 54));
+            title.setMaximumSize(new Dimension(Integer.MAX_VALUE, 54));
 
-            JLabel subtitle = new JLabel("MUEBLERÍA");
-                subtitle.setFont(new Font("Serif", Font.BOLD, 16));
+            JLabel subtitle = new JLabel("----------- M U E B L E R Í A ------------");
+            subtitle.setFont(new Font("Arial", Font.BOLD, 16));
             subtitle.setHorizontalAlignment(SwingConstants.CENTER);
-                subtitle.setForeground(new Color(247, 239, 222));
+            subtitle.setForeground(new Color(62, 35, 20));
+            subtitle.setAlignmentX(Component.CENTER_ALIGNMENT);
+            subtitle.setPreferredSize(new Dimension(0, 28));
+            subtitle.setMaximumSize(new Dimension(Integer.MAX_VALUE, 28));
 
-            JPanel leftText = new JPanel();
-            leftText.setOpaque(false);
-                leftText.setLayout(new GridLayout(2, 1, 0, 8));
-            leftText.add(title);
-            leftText.add(subtitle);
+            JLabel brandNote = new JLabel("El arte de amueblar con estilo", SwingConstants.CENTER);
+            brandNote.setFont(new Font("Arial", Font.PLAIN, 16));
+            brandNote.setForeground(new Color(46, 35, 27));
+            brandNote.setAlignmentX(Component.CENTER_ALIGNMENT);
+            brandNote.setPreferredSize(new Dimension(0, 28));
+            brandNote.setMaximumSize(new Dimension(Integer.MAX_VALUE, 28));
 
-                JLabel brandNote = new JLabel("Tu espacio, tu estilo", SwingConstants.CENTER);
-                brandNote.setFont(new Font("Serif", Font.ITALIC, 20));
-                brandNote.setForeground(new Color(255, 250, 239));
+            JPanel brandGroup = new JPanel();
+            brandGroup.setOpaque(false);
+            brandGroup.setLayout(new BoxLayout(brandGroup, BoxLayout.Y_AXIS));
+            brandGroup.setBorder(BorderFactory.createEmptyBorder(10, 16, 10, 16));
+            brandGroup.add(icon);
+            brandGroup.add(Box.createVerticalStrut(8));
+            brandGroup.add(title);
+            brandGroup.add(Box.createVerticalStrut(3));
+            brandGroup.add(subtitle);
+            brandGroup.add(Box.createVerticalStrut(6));
+            brandGroup.add(brandNote);
 
-                JPanel brandMark = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
-                brandMark.setOpaque(false);
-                brandMark.add(icon);
-                leftCard.add(brandMark, BorderLayout.NORTH);
-            leftCard.add(leftText, BorderLayout.CENTER);
-                leftCard.add(brandNote, BorderLayout.SOUTH);
+            JPanel brandPlate = new JPanel(new BorderLayout()) {
+                @Override
+                protected void paintComponent(Graphics graphics) {
+                    Graphics2D g = (Graphics2D) graphics.create();
+                    g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                    g.setColor(new Color(255, 250, 240, 224));
+                    g.fillRoundRect(0, 0, getWidth(), getHeight(), 18, 18);
+                    g.setColor(new Color(255, 255, 255, 190));
+                    g.setStroke(new BasicStroke(1.2f));
+                    g.drawRoundRect(1, 1, getWidth() - 3, getHeight() - 3, 18, 18);
+                    g.dispose();
+                }
+            };
+            brandPlate.setOpaque(false);
+            brandPlate.setPreferredSize(new Dimension(420, 300));
+            brandPlate.add(brandGroup, BorderLayout.CENTER);
+
+            JPanel brandHost = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 14));
+            brandHost.setOpaque(false);
+            brandHost.add(brandPlate);
+            leftCard.add(brandHost, BorderLayout.NORTH);
             left.add(leftCard, BorderLayout.CENTER);
 
-            JPanel formPanel = new JPanel();
-                formPanel.setBackground(new Color(255, 255, 253));
-            formPanel.setLayout(new BorderLayout());
-                formPanel.setBorder(BorderFactory.createEmptyBorder(72, 72, 52, 72));
+            JPanel formPanel = new JPanel(new BorderLayout());
+            formPanel.setBackground(new Color(250, 247, 242));
 
-                JPanel labelPanel = new JPanel(new GridLayout(2, 1, 0, 8));
+            JPanel formContent = new JPanel(new GridBagLayout());
+            formContent.setBackground(new Color(250, 247, 242));
+            formContent.setBorder(BorderFactory.createEmptyBorder(20, 32, 34, 18));
+
+            JPanel labelPanel = new JPanel();
             labelPanel.setOpaque(false);
+            labelPanel.setLayout(new BoxLayout(labelPanel, BoxLayout.Y_AXIS));
 
             JLabel lblLogin = new JLabel("Iniciar sesión");
-                lblLogin.setFont(new Font("Serif", Font.BOLD, 32));
-                lblLogin.setForeground(new Color(48, 54, 44));
+            lblLogin.setFont(new Font("Arial", Font.BOLD, 32));
+            lblLogin.setForeground(new Color(34, 31, 28));
+            lblLogin.setHorizontalAlignment(SwingConstants.CENTER);
+            lblLogin.setAlignmentX(Component.CENTER_ALIGNMENT);
 
             JLabel lblSubtitle = new JLabel("Accede a tu cuenta para continuar");
-                lblSubtitle.setForeground(new Color(112, 116, 105));
-                lblSubtitle.setFont(new Font("Arial", Font.PLAIN, 15));
+            lblSubtitle.setForeground(new Color(94, 91, 87));
+            lblSubtitle.setFont(new Font("Arial", Font.PLAIN, 16));
+            lblSubtitle.setHorizontalAlignment(SwingConstants.CENTER);
+            lblSubtitle.setAlignmentX(Component.CENTER_ALIGNMENT);
+            lblLogin.setPreferredSize(new Dimension(0, 44));
+            lblLogin.setMaximumSize(new Dimension(Integer.MAX_VALUE, 44));
+            lblSubtitle.setPreferredSize(new Dimension(0, 28));
+            lblSubtitle.setMaximumSize(new Dimension(Integer.MAX_VALUE, 28));
 
             labelPanel.add(lblLogin);
+            labelPanel.add(Box.createVerticalStrut(2));
             labelPanel.add(lblSubtitle);
+            labelPanel.setPreferredSize(new Dimension(396, 74));
+            labelPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 74));
 
             JPanel fields = new JPanel();
             fields.setOpaque(false);
             fields.setLayout(new BoxLayout(fields, BoxLayout.Y_AXIS));
+            fields.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-            Color placeholderColor = new Color(139, 143, 132);
-            txtUsuario.setFont(new Font("Arial", Font.PLAIN, 15));
+            Color inputTextColor = new Color(76, 46, 29);
+            txtUsuario.setFont(new Font("Arial", Font.PLAIN, 17));
             txtUsuario.setBorder(BorderFactory.createEmptyBorder());
             txtUsuario.setText("Usuario");
-            txtUsuario.setForeground(placeholderColor);
+            txtUsuario.setForeground(inputTextColor);
             txtUsuario.addFocusListener(new java.awt.event.FocusAdapter() {
                 @Override
                 public void focusGained(java.awt.event.FocusEvent e) {
                     if (txtUsuario.getText().equals("Usuario")) {
                         txtUsuario.setText("");
-                        txtUsuario.setForeground(new Color(48, 54, 44));
+                        txtUsuario.setForeground(inputTextColor);
                     }
                 }
 
@@ -150,23 +190,23 @@ public class Project1 {
                 public void focusLost(java.awt.event.FocusEvent e) {
                     if (txtUsuario.getText().trim().isEmpty()) {
                         txtUsuario.setText("Usuario");
-                        txtUsuario.setForeground(placeholderColor);
+                        txtUsuario.setForeground(inputTextColor);
                     }
                 }
             });
 
-            txtPassword.setFont(new Font("Arial", Font.PLAIN, 15));
+            txtPassword.setFont(new Font("Arial", Font.PLAIN, 17));
             txtPassword.setBorder(BorderFactory.createEmptyBorder());
             txtPassword.setText("Contraseña");
             txtPassword.setEchoChar((char) 0);
-            txtPassword.setForeground(placeholderColor);
+            txtPassword.setForeground(inputTextColor);
             txtPassword.addFocusListener(new java.awt.event.FocusAdapter() {
                 @Override
                 public void focusGained(java.awt.event.FocusEvent e) {
                     if (new String(txtPassword.getPassword()).equals("Contraseña")) {
                         txtPassword.setText("");
                         txtPassword.setEchoChar('\u2022');
-                        txtPassword.setForeground(new Color(48, 54, 44));
+                        txtPassword.setForeground(inputTextColor);
                     }
                 }
 
@@ -175,52 +215,92 @@ public class Project1 {
                     if (txtPassword.getPassword().length == 0) {
                         txtPassword.setText("Contraseña");
                         txtPassword.setEchoChar((char) 0);
-                        txtPassword.setForeground(placeholderColor);
+                        txtPassword.setForeground(inputTextColor);
                     }
                 }
             });
 
             JPanel userField = createIconField(txtUsuario, createFieldIcon(false));
             JPanel passwordField = createIconField(txtPassword, createFieldIcon(true));
-            userField.setMaximumSize(new Dimension(Integer.MAX_VALUE, 48));
-            passwordField.setMaximumSize(new Dimension(Integer.MAX_VALUE, 48));
+            userField.setMaximumSize(new Dimension(Integer.MAX_VALUE, 60));
+            passwordField.setMaximumSize(new Dimension(Integer.MAX_VALUE, 60));
 
-            JButton btnIngresar = new JButton("Ingresar");
-                btnIngresar.setFont(new Font("Arial", Font.BOLD, 16));
-                btnIngresar.setPreferredSize(new Dimension(0, 48));
-                styleButton(btnIngresar, new Color(74, 42, 27), Color.WHITE);
+            JButton btnIngresar = new JButton("Ingresar") {
+                @Override
+                protected void paintComponent(Graphics graphics) {
+                    Graphics2D g = (Graphics2D) graphics.create();
+                    g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                    Color fill = getModel().isPressed()
+                            ? new Color(45, 25, 14)
+                            : getModel().isRollover() ? new Color(83, 47, 27) : getBackground();
+                    g.setColor(fill);
+                    g.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 24, 24);
+                    g.dispose();
+                    super.paintComponent(graphics);
+                }
+
+                @Override
+                protected void paintBorder(Graphics graphics) {
+                    Graphics2D g = (Graphics2D) graphics.create();
+                    g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                    g.setColor(new Color(103, 68, 47));
+                    g.setStroke(new BasicStroke(1.2f));
+                    g.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 24, 24);
+                    g.dispose();
+                }
+            };
+            btnIngresar.setFont(new Font("Arial", Font.BOLD, 17));
+            btnIngresar.setPreferredSize(new Dimension(396, 60));
+            btnIngresar.setMaximumSize(new Dimension(Integer.MAX_VALUE, 60));
+            btnIngresar.setAlignmentX(Component.CENTER_ALIGNMENT);
+            styleButton(btnIngresar, new Color(61, 32, 17), Color.WHITE);
+            btnIngresar.setContentAreaFilled(false);
+            btnIngresar.setOpaque(false);
             btnIngresar.addActionListener(e -> ingresar());
 
             JButton btnForgot = new JButton("¿Olvidaste tu contraseña?");
             btnForgot.setHorizontalAlignment(SwingConstants.CENTER);
-            btnForgot.setForeground(new Color(95, 108, 84));
-            btnForgot.setFont(new Font("Arial", Font.PLAIN, 13));
+            btnForgot.setForeground(new Color(76, 46, 29));
+            btnForgot.setFont(new Font("Arial", Font.PLAIN, 15));
             btnForgot.setBorderPainted(false);
             btnForgot.setContentAreaFilled(false);
             btnForgot.setFocusPainted(false);
             btnForgot.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+            btnForgot.setAlignmentX(Component.CENTER_ALIGNMENT);
             btnForgot.addActionListener(e -> mostrarAyudaContrasena());
 
             fields.add(userField);
             fields.add(Box.createVerticalStrut(16));
             fields.add(passwordField);
+            fields.setMaximumSize(new Dimension(Integer.MAX_VALUE, 154));
 
-            JPanel formContent = new JPanel(new BorderLayout(0, 36));
-            formContent.setOpaque(false);
-            formContent.add(labelPanel, BorderLayout.NORTH);
-            formContent.add(fields, BorderLayout.CENTER);
+            JPanel loginGroup = new JPanel();
+            loginGroup.setOpaque(false);
+            loginGroup.setLayout(new BoxLayout(loginGroup, BoxLayout.Y_AXIS));
+            loginGroup.add(labelPanel);
+            loginGroup.add(Box.createVerticalStrut(32));
+            loginGroup.add(fields);
+            loginGroup.add(Box.createVerticalStrut(28));
+            loginGroup.add(btnIngresar);
+            loginGroup.add(Box.createVerticalStrut(16));
+            loginGroup.add(btnForgot);
 
-            JPanel actions = new JPanel(new BorderLayout(0, 16));
-            actions.setOpaque(false);
-            actions.add(btnIngresar, BorderLayout.NORTH);
-            actions.add(btnForgot, BorderLayout.SOUTH);
+            GridBagConstraints formConstraints = new GridBagConstraints();
+            formConstraints.gridx = 0;
+            formConstraints.gridy = 0;
+            formConstraints.weightx = 1;
+            formConstraints.weighty = 1;
+            formConstraints.fill = GridBagConstraints.HORIZONTAL;
+            formContent.add(loginGroup, formConstraints);
 
             formPanel.add(formContent, BorderLayout.CENTER);
-            formPanel.add(actions, BorderLayout.SOUTH);
 
             root.add(left, BorderLayout.WEST);
             root.add(formPanel, BorderLayout.CENTER);
+            root.setPreferredSize(new Dimension(960, 620));
             add(root);
+            pack();
+            setLocationRelativeTo(null);
         }
 
         private BufferedImage loadLoginImage() {
@@ -242,30 +322,47 @@ public class Project1 {
                     Graphics2D g = (Graphics2D) graphics.create();
                     g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                     g.translate(x, y);
-                    g.setColor(new Color(82, 99, 75));
-                    g.fillOval(4, 4, 104, 104);
-                    g.setColor(new Color(247, 244, 235));
-                    g.setStroke(new BasicStroke(3f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-                    g.drawLine(29, 48, 56, 26);
-                    g.drawLine(56, 26, 83, 48);
-                    g.drawLine(36, 44, 36, 52);
-                    g.drawLine(76, 44, 76, 52);
-                    g.drawRoundRect(31, 57, 50, 22, 5, 5);
-                    g.drawRoundRect(35, 51, 42, 14, 5, 5);
-                    g.drawLine(39, 79, 37, 86);
-                    g.drawLine(73, 79, 75, 86);
-                    g.drawLine(56, 52, 56, 65);
+                    g.scale(1.1, 0.85);
+                    g.setColor(new Color(62, 35, 20));
+                    g.setStroke(new BasicStroke(5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+                    g.drawLine(19, 106, 89, 28);
+                    g.drawLine(89, 28, 160, 106);
+                    g.drawLine(34, 90, 34, 179);
+                    g.drawLine(145, 90, 145, 179);
+                    g.drawLine(28, 179, 153, 179);
+                    g.fillRect(124, 43, 10, 39);
+                    g.setStroke(new BasicStroke(3.5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+                    g.drawLine(42, 100, 42, 84);
+                    g.drawLine(42, 84, 57, 84);
+                    g.drawLine(57, 84, 57, 100);
+                    g.drawLine(47, 100, 47, 121);
+                    g.drawLine(51, 100, 51, 121);
+                    g.fillRoundRect(63, 104, 53, 46, 8, 8);
+                    g.fillRoundRect(57, 117, 13, 33, 6, 6);
+                    g.fillRoundRect(109, 117, 13, 33, 6, 6);
+                    g.setColor(new Color(255, 246, 226));
+                    g.drawLine(89, 109, 89, 143);
+                    g.setColor(new Color(62, 35, 20));
+                    g.drawLine(68, 150, 66, 166);
+                    g.drawLine(111, 150, 113, 166);
+                    g.drawRect(127, 126, 21, 41);
+                    g.drawLine(127, 140, 148, 140);
+                    g.drawLine(137, 126, 137, 167);
+                    g.drawLine(24, 127, 42, 127);
+                    g.drawLine(33, 127, 33, 166);
+                    g.drawLine(22, 127, 44, 127);
+                    g.drawLine(20, 115, 46, 115);
                     g.dispose();
                 }
 
                 @Override
                 public int getIconWidth() {
-                    return 112;
+                    return 190;
                 }
 
                 @Override
                 public int getIconHeight() {
-                    return 112;
+                    return 155;
                 }
             };
         }
@@ -281,7 +378,7 @@ public class Project1 {
             iconLabel.setToolTipText(field == txtUsuario ? "Usuario" : "Contraseña");
             panel.add(iconLabel, BorderLayout.WEST);
             panel.add(field, BorderLayout.CENTER);
-            panel.setPreferredSize(new Dimension(0, 48));
+            panel.setPreferredSize(new Dimension(396, 60));
             return panel;
         }
 
