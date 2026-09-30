@@ -1,6 +1,10 @@
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
+import javax.imageio.ImageIO;
 import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -37,31 +41,55 @@ public class Project1 {
 
             JPanel left = new JPanel();
                 left.setBackground(new Color(246, 244, 239));
-                left.setBorder(BorderFactory.createEmptyBorder(24, 24, 24, 12));
-                left.setPreferredSize(new Dimension(470, 0));
+                left.setBorder(BorderFactory.createEmptyBorder(18, 18, 18, 12));
+                left.setPreferredSize(new Dimension(520, 0));
             left.setLayout(new BorderLayout());
 
-            JPanel leftCard = new JPanel();
-                leftCard.setBackground(new Color(231, 234, 224));
-                leftCard.setBorder(BorderFactory.createEmptyBorder(24, 20, 24, 20));
-            leftCard.setLayout(new BorderLayout());
+            BufferedImage loginImage = loadLoginImage();
+            JPanel leftCard = new JPanel(new BorderLayout()) {
+                @Override
+                protected void paintComponent(Graphics graphics) {
+                    super.paintComponent(graphics);
+                    Graphics2D g = (Graphics2D) graphics.create();
+                    if (loginImage != null) {
+                        double scale = Math.max(
+                                (double) getWidth() / loginImage.getWidth(),
+                                (double) getHeight() / loginImage.getHeight()
+                        );
+                        int imageWidth = (int) (loginImage.getWidth() * scale);
+                        int imageHeight = (int) (loginImage.getHeight() * scale);
+                        g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+                        g.drawImage(loginImage,
+                                (getWidth() - imageWidth) / 2,
+                                (getHeight() - imageHeight) / 2,
+                                imageWidth, imageHeight, this);
+                    } else {
+                        g.setColor(new Color(112, 91, 70));
+                        g.fillRect(0, 0, getWidth(), getHeight());
+                    }
+                    g.setPaint(new GradientPaint(
+                            0, 0, new Color(28, 20, 14, 95),
+                            0, getHeight(), new Color(28, 20, 14, 125)
+                    ));
+                    g.fillRect(0, 0, getWidth(), getHeight());
+                    g.dispose();
+                }
+            };
+            leftCard.setOpaque(false);
+            leftCard.setBorder(BorderFactory.createEmptyBorder(24, 20, 24, 20));
 
-                JLabel icon = new JLabel("H", SwingConstants.CENTER);
-                icon.setFont(new Font("Serif", Font.BOLD, 34));
-                icon.setForeground(new Color(247, 244, 235));
-                icon.setOpaque(true);
-                icon.setBackground(new Color(82, 99, 75));
-                icon.setPreferredSize(new Dimension(62, 62));
+                JLabel icon = new JLabel(createFurnitureLogo());
+                icon.setPreferredSize(new Dimension(112, 112));
 
             JLabel title = new JLabel("HOGARWOOD");
                 title.setFont(new Font("Serif", Font.BOLD, 34));
             title.setHorizontalAlignment(SwingConstants.CENTER);
-                title.setForeground(new Color(55, 65, 49));
+                title.setForeground(new Color(255, 250, 239));
 
             JLabel subtitle = new JLabel("MUEBLERÍA");
-                subtitle.setFont(new Font("Arial", Font.BOLD, 13));
+                subtitle.setFont(new Font("Serif", Font.BOLD, 16));
             subtitle.setHorizontalAlignment(SwingConstants.CENTER);
-                subtitle.setForeground(new Color(105, 116, 96));
+                subtitle.setForeground(new Color(247, 239, 222));
 
             JPanel leftText = new JPanel();
             leftText.setOpaque(false);
@@ -69,9 +97,9 @@ public class Project1 {
             leftText.add(title);
             leftText.add(subtitle);
 
-                JLabel brandNote = new JLabel("Espacios para vivir mejor", SwingConstants.CENTER);
+                JLabel brandNote = new JLabel("Tu espacio, tu estilo", SwingConstants.CENTER);
                 brandNote.setFont(new Font("Serif", Font.ITALIC, 20));
-                brandNote.setForeground(new Color(105, 116, 96));
+                brandNote.setForeground(new Color(255, 250, 239));
 
                 JPanel brandMark = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
                 brandMark.setOpaque(false);
@@ -160,7 +188,7 @@ public class Project1 {
             JButton btnIngresar = new JButton("Ingresar");
                 btnIngresar.setFont(new Font("Arial", Font.BOLD, 16));
                 btnIngresar.setPreferredSize(new Dimension(0, 48));
-                styleButton(btnIngresar, new Color(74, 91, 66), Color.WHITE);
+                styleButton(btnIngresar, new Color(74, 42, 27), Color.WHITE);
             btnIngresar.addActionListener(e -> ingresar());
 
             JButton btnForgot = new JButton("¿Olvidaste tu contraseña?");
@@ -193,6 +221,53 @@ public class Project1 {
             root.add(left, BorderLayout.WEST);
             root.add(formPanel, BorderLayout.CENTER);
             add(root);
+        }
+
+        private BufferedImage loadLoginImage() {
+            File imageFile = new File("assets/living-room.jpg");
+            if (!imageFile.isFile()) {
+                return null;
+            }
+            try {
+                return ImageIO.read(imageFile);
+            } catch (IOException e) {
+                return null;
+            }
+        }
+
+        private Icon createFurnitureLogo() {
+            return new Icon() {
+                @Override
+                public void paintIcon(Component component, Graphics graphics, int x, int y) {
+                    Graphics2D g = (Graphics2D) graphics.create();
+                    g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                    g.translate(x, y);
+                    g.setColor(new Color(82, 99, 75));
+                    g.fillOval(4, 4, 104, 104);
+                    g.setColor(new Color(247, 244, 235));
+                    g.setStroke(new BasicStroke(3f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+                    g.drawLine(29, 48, 56, 26);
+                    g.drawLine(56, 26, 83, 48);
+                    g.drawLine(36, 44, 36, 52);
+                    g.drawLine(76, 44, 76, 52);
+                    g.drawRoundRect(31, 57, 50, 22, 5, 5);
+                    g.drawRoundRect(35, 51, 42, 14, 5, 5);
+                    g.drawLine(39, 79, 37, 86);
+                    g.drawLine(73, 79, 75, 86);
+                    g.drawLine(56, 52, 56, 65);
+                    g.dispose();
+                }
+
+                @Override
+                public int getIconWidth() {
+                    return 112;
+                }
+
+                @Override
+                public int getIconHeight() {
+                    return 112;
+                }
+            };
         }
 
         private JPanel createIconField(JTextField field, Icon icon) {
