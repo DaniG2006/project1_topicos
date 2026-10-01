@@ -1,4 +1,4 @@
-import javax.swing.*;
+import javax.swing.*; 
 import javax.swing.table.DefaultTableModel;
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -29,6 +29,10 @@ public class Project1 {
     static class LoginFrame extends JFrame {
         private final JTextField txtUsuario = new JTextField();
         private final JPasswordField txtPassword = new JPasswordField();
+        private final JLabel lblLoginError = new JLabel("Usuario o contraseña incorrectos", SwingConstants.CENTER);
+        private JPanel loginErrorContainer;
+        private javax.swing.Timer loginErrorShakeTimer;
+        private int loginErrorOffset;
 
         public LoginFrame() {
             setTitle("HolmWood - Registro de acceso");
@@ -106,7 +110,7 @@ public class Project1 {
             brandGroup.setLayout(new BoxLayout(brandGroup, BoxLayout.Y_AXIS));
             brandGroup.setBorder(BorderFactory.createEmptyBorder(10, 16, 10, 16));
             brandGroup.add(icon);
-            brandGroup.add(Box.createVerticalStrut(8));
+            brandGroup.add(Box.createVerticalStrut(6));
             brandGroup.add(title);
             brandGroup.add(Box.createVerticalStrut(3));
             brandGroup.add(subtitle);
@@ -130,10 +134,10 @@ public class Project1 {
             brandPlate.setPreferredSize(new Dimension(420, 300));
             brandPlate.add(brandGroup, BorderLayout.CENTER);
 
-            JPanel brandHost = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 14));
+            JPanel brandHost = new JPanel(new GridBagLayout());
             brandHost.setOpaque(false);
             brandHost.add(brandPlate);
-            leftCard.add(brandHost, BorderLayout.NORTH);
+            leftCard.add(brandHost, BorderLayout.CENTER);
             left.add(leftCard, BorderLayout.CENTER);
 
             JPanel formPanel = new JPanel(new BorderLayout());
@@ -227,8 +231,25 @@ public class Project1 {
             userField.setMaximumSize(new Dimension(Integer.MAX_VALUE, 60));
             passwordField.setMaximumSize(new Dimension(Integer.MAX_VALUE, 60));
 
-            JButton btnIngresar = new JButton("Ingresar") {
+            lblLoginError.setFont(new Font("Arial", Font.BOLD, 13));
+            lblLoginError.setForeground(new Color(177, 48, 40));
+            lblLoginError.setVisible(false);
+            loginErrorContainer = new JPanel(null) {
                 @Override
+                public void doLayout() {
+                    int labelWidth = lblLoginError.getPreferredSize().width;
+                    int labelHeight = getHeight();
+                    int x = (getWidth() - labelWidth) / 2 + loginErrorOffset;
+                    lblLoginError.setBounds(x, 0, labelWidth, labelHeight);
+                }
+            };
+            loginErrorContainer.setOpaque(false);
+            loginErrorContainer.setPreferredSize(new Dimension(396, 22));
+            loginErrorContainer.setMaximumSize(new Dimension(Integer.MAX_VALUE, 22));
+            loginErrorContainer.setAlignmentX(Component.CENTER_ALIGNMENT);
+            loginErrorContainer.add(lblLoginError);
+
+            JButton btnIngresar = new JButton("Ingresar") {
                 protected void paintComponent(Graphics graphics) {
                     Graphics2D g = (Graphics2D) graphics.create();
                     g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
@@ -240,8 +261,6 @@ public class Project1 {
                     g.dispose();
                     super.paintComponent(graphics);
                 }
-
-                @Override
                 protected void paintBorder(Graphics graphics) {
                     Graphics2D g = (Graphics2D) graphics.create();
                     g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
@@ -274,7 +293,9 @@ public class Project1 {
             fields.add(userField);
             fields.add(Box.createVerticalStrut(16));
             fields.add(passwordField);
-            fields.setMaximumSize(new Dimension(Integer.MAX_VALUE, 154));
+            fields.add(Box.createVerticalStrut(4));
+            fields.add(loginErrorContainer);
+            fields.setMaximumSize(new Dimension(Integer.MAX_VALUE, 184));
 
             JPanel loginGroup = new JPanel();
             loginGroup.setOpaque(false);
@@ -303,6 +324,29 @@ public class Project1 {
             add(root);
             pack();
             setLocationRelativeTo(null);
+        }
+
+        private void showLoginError() {
+            if (loginErrorShakeTimer != null && loginErrorShakeTimer.isRunning()) {
+                loginErrorShakeTimer.stop();
+            }
+
+            lblLoginError.setVisible(true);
+            int[] offsets = {0, -9, 9, -7, 7, -4, 4, 0};
+            int[] step = {0};
+            loginErrorShakeTimer = new javax.swing.Timer(35, e -> {
+                if (step[0] >= offsets.length) {
+                    loginErrorOffset = 0;
+                    loginErrorContainer.doLayout();
+                    loginErrorContainer.repaint();
+                    ((javax.swing.Timer) e.getSource()).stop();
+                    return;
+                }
+                loginErrorOffset = offsets[step[0]++];
+                loginErrorContainer.doLayout();
+                loginErrorContainer.repaint();
+            });
+            loginErrorShakeTimer.start();
         }
 
         private BufferedImage loadLoginImage() {
@@ -416,7 +460,7 @@ public class Project1 {
         private void mostrarAyudaContrasena() {
             JOptionPane.showMessageDialog(this,
                     "Esta versión local usa una cuenta de demostración:\n"
-                            + "Usuario: admin\nContraseña: 1234\n\n"
+                            + "Usuario: Dani Admin\nContraseña: DaniG2006\n\n"
                             + "Para cuentas reales, configura un método de recuperación seguro.",
                     "Ayuda para iniciar sesión",
                     JOptionPane.INFORMATION_MESSAGE);
@@ -425,6 +469,9 @@ public class Project1 {
         private void ingresar() {
             String usuario = txtUsuario.getText();
             String password = new String(txtPassword.getPassword());
+            lblLoginError.setVisible(false);
+            loginErrorOffset = 0;
+            loginErrorContainer.doLayout();
             if (usuario.equals("Usuario")) {
                 usuario = "";
             }
@@ -432,15 +479,12 @@ public class Project1 {
                 password = "";
             }
 
-            if (usuario.equalsIgnoreCase("admin") && password.equals("1234")) {
-                JOptionPane.showMessageDialog(this, "Acceso correcto");
+            if (usuario.equalsIgnoreCase("Dani Admin") && password.equals("DaniG2006")) {
                 new MenuFrame().setVisible(true);
                 dispose();
             } else {
-                JOptionPane.showMessageDialog(this,
-                        "Usuario o contraseña incorrectos",
-                        "Error",
-                        JOptionPane.ERROR_MESSAGE);
+                showLoginError();
+                txtPassword.requestFocusInWindow();
             }
         }
     }
@@ -455,6 +499,7 @@ public class Project1 {
         private final JPanel pageContainer = new JPanel(pageLayout);
         private final Map<String, JPanel> modulePages = new HashMap<>();
         private final Map<String, JButton> navButtons = new HashMap<>();
+        private String activePage = "Inicio";
 
         public MenuFrame() {
             setTitle("HOGARWOOD - Menú principal");
@@ -466,11 +511,6 @@ public class Project1 {
 
             JPanel root = new JPanel(new BorderLayout());
             root.setBackground(softBg);
-            root.setBorder(BorderFactory.createLineBorder(new Color(43, 28, 19), 6));
-
-            JPanel topBar = new JPanel(new BorderLayout());
-            topBar.setBackground(darkBrown);
-            topBar.setBorder(BorderFactory.createEmptyBorder(10, 22, 10, 22));
 
             JPanel brandText = new JPanel();
             brandText.setOpaque(false);
@@ -490,36 +530,55 @@ public class Project1 {
             brand.add(logoIcon);
             brand.add(brandText);
 
-            JPanel userPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+            JPanel userPanel = new JPanel();
             userPanel.setOpaque(false);
-            JLabel iconUser = new JLabel(createMenuIcon("Usuario", new Color(255, 250, 242), 32));
-            JLabel userText = new JLabel("Usuario: admin");
+            userPanel.setLayout(new BoxLayout(userPanel, BoxLayout.Y_AXIS));
+            JLabel iconUser = new JLabel(createMenuIcon("Usuario", mutedCream, 28));
+            JLabel userText = new JLabel("Usuario: Dani Admin");
             userText.setForeground(new Color(255, 250, 242));
             userText.setFont(new Font("Arial", Font.BOLD, 13));
+            userText.setAlignmentX(Component.LEFT_ALIGNMENT);
+            Color logoutColor = new Color(91, 56, 36);
             JButton btnLogout = new JButton("Cerrar sesión");
-            btnLogout.setBackground(new Color(91, 56, 36));
+            btnLogout.setBackground(logoutColor);
             btnLogout.setForeground(new Color(255, 250, 242));
             btnLogout.setBorderPainted(false);
             btnLogout.setFocusPainted(false);
             btnLogout.setFont(new Font("Arial", Font.BOLD, 12));
             btnLogout.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
             btnLogout.setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 12));
+            btnLogout.setAlignmentX(Component.LEFT_ALIGNMENT);
             btnLogout.addActionListener(e -> {
                 new LoginFrame().setVisible(true);
                 dispose();
             });
+            btnLogout.addMouseListener(new java.awt.event.MouseAdapter() {
+                @Override
+                public void mousePressed(java.awt.event.MouseEvent e) {
+                    btnLogout.setBackground(logoutColor.darker());
+                }
+
+                @Override
+                public void mouseReleased(java.awt.event.MouseEvent e) {
+                    btnLogout.setBackground(logoutColor);
+                    btnLogout.setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 12));
+                }
+            });
+            iconUser.setAlignmentX(Component.LEFT_ALIGNMENT);
             userPanel.add(iconUser);
+            userPanel.add(Box.createVerticalStrut(6));
             userPanel.add(userText);
+            userPanel.add(Box.createVerticalStrut(10));
             userPanel.add(btnLogout);
 
-            topBar.add(brand, BorderLayout.WEST);
-            topBar.add(userPanel, BorderLayout.EAST);
-
             JPanel leftMenu = new JPanel();
-            leftMenu.setPreferredSize(new Dimension(205, 0));
+            leftMenu.setPreferredSize(new Dimension(225, 0));
             leftMenu.setBackground(sidebarBrown);
-            leftMenu.setBorder(BorderFactory.createEmptyBorder(18, 12, 18, 12));
+            leftMenu.setBorder(BorderFactory.createEmptyBorder(16, 8, 4, 8));
             leftMenu.setLayout(new BoxLayout(leftMenu, BoxLayout.Y_AXIS));
+            brand.setAlignmentX(Component.LEFT_ALIGNMENT);
+            brand.setBorder(BorderFactory.createEmptyBorder(0, 8, 20, 0));
+            leftMenu.add(brand);
 
             JLabel navHeading = new JLabel("MENÚ PRINCIPAL");
             navHeading.setForeground(mutedCream);
@@ -545,17 +604,38 @@ public class Project1 {
                 btn.setFont(new Font("Arial", selected ? Font.BOLD : Font.PLAIN, 14));
                 btn.setOpaque(true);
                 btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+                btn.setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 8));
                 btn.addActionListener(e -> openModule(item));
+                btn.addMouseListener(new java.awt.event.MouseAdapter() {
+                    @Override
+                    public void mousePressed(java.awt.event.MouseEvent e) {
+                        Color baseColor = item.equals(activePage) ? selectedBrown : sidebarBrown;
+                        btn.setBackground(baseColor.darker());
+                    }
+
+                    @Override
+                    public void mouseReleased(java.awt.event.MouseEvent e) {
+                        updateSelectedNavigation(activePage);
+                    }
+                });
                 leftMenu.add(Box.createVerticalStrut(5));
                 leftMenu.add(btn);
                 navButtons.put(item, btn);
             }
 
+            leftMenu.add(Box.createVerticalGlue());
+            JPanel accountSection = new JPanel(new BorderLayout(0, 0));
+            accountSection.setOpaque(false);
+            accountSection.setAlignmentX(Component.LEFT_ALIGNMENT);
+                accountSection.setBorder(BorderFactory.createEmptyBorder(2, 4, 0, 4));
+            accountSection.add(userPanel, BorderLayout.CENTER);
+            leftMenu.add(accountSection);
+
             JPanel content = new JPanel(new BorderLayout());
             content.setBackground(new Color(255, 255, 255));
             content.setBorder(BorderFactory.createEmptyBorder(28, 30, 28, 30));
 
-            JLabel bienvenida = new JLabel("Bienvenido, admin");
+            JLabel bienvenida = new JLabel("Bienvenido, Dani Admin");
             bienvenida.setFont(new Font("Arial", Font.BOLD, 26));
             bienvenida.setForeground(new Color(42, 34, 29));
             bienvenida.setBorder(BorderFactory.createEmptyBorder(0, 0, 4, 0));
@@ -587,10 +667,7 @@ public class Project1 {
                 String moduleName = String.valueOf(module[0]);
                 JPanel card = new JPanel(new BorderLayout());
                 card.setBackground(new Color(247, 243, 238));
-                card.setBorder(BorderFactory.createCompoundBorder(
-                        BorderFactory.createLineBorder(new Color(231, 224, 216), 1),
-                        BorderFactory.createEmptyBorder(10, 8, 10, 8)
-                ));
+                card.setBorder(BorderFactory.createLineBorder(new Color(231, 224, 216), 1));
                 card.setPreferredSize(new Dimension(220, 150));
 
                 JLabel icon = new JLabel(createMenuIcon(moduleName, darkBrown, 48));
@@ -623,6 +700,18 @@ public class Project1 {
                     }
 
                     @Override
+                    public void mousePressed(java.awt.event.MouseEvent e) {
+                        card.setBackground(new Color(247, 243, 238).darker());
+                    }
+
+                    @Override
+                    public void mouseReleased(java.awt.event.MouseEvent e) {
+                        card.setBackground(card.contains(e.getPoint())
+                                ? new Color(241, 234, 226)
+                                : new Color(247, 243, 238));
+                    }
+
+                    @Override
                     public void mouseEntered(java.awt.event.MouseEvent e) {
                         card.setBackground(new Color(241, 234, 226));
                     }
@@ -640,7 +729,6 @@ public class Project1 {
 
             pageContainer.setBackground(Color.WHITE);
             pageContainer.add(content, "Inicio");
-            root.add(topBar, BorderLayout.NORTH);
             root.add(leftMenu, BorderLayout.WEST);
             root.add(pageContainer, BorderLayout.CENTER);
             add(root);
@@ -648,7 +736,6 @@ public class Project1 {
 
         private Icon createMenuIcon(String name, Color color, int size) {
             return new Icon() {
-                @Override
                 public void paintIcon(Component component, Graphics graphics, int x, int y) {
                     Graphics2D g = (Graphics2D) graphics.create();
                     g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
@@ -793,12 +880,14 @@ public class Project1 {
         }
 
         private void updateSelectedNavigation(String selectedName) {
+            activePage = selectedName;
             for (Map.Entry<String, JButton> entry : navButtons.entrySet()) {
                 boolean selected = entry.getKey().equals(selectedName);
                 JButton button = entry.getValue();
                 button.setBackground(selected ? selectedBrown : sidebarBrown);
                 button.setFont(new Font("Arial", selected ? Font.BOLD : Font.PLAIN, 14));
                 button.setIcon(createMenuIcon(entry.getKey(), selected ? Color.WHITE : mutedCream, 25));
+                button.setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 8));
             }
         }
 
@@ -1048,7 +1137,7 @@ public class Project1 {
 
             c.gridwidth = 1;
             c.gridx = 0; c.gridy = 1; form.add(new JLabel("Cliente:"), c);
-            JTextField txtCliente = new JTextField("Ana López");
+            JTextField txtCliente = new JTextField("Ruben");
             c.gridx = 1; form.add(txtCliente, c);
 
             c.gridx = 0; c.gridy = 2; form.add(new JLabel("Monto:"), c);
@@ -1056,7 +1145,7 @@ public class Project1 {
             c.gridx = 1; form.add(txtMonto, c);
 
             c.gridx = 0; c.gridy = 3; form.add(new JLabel("Fecha:"), c);
-            JTextField txtFecha = new JTextField("2025-06-20");
+            JTextField txtFecha = new JTextField("2026-09-30");
             c.gridx = 1; form.add(txtFecha, c);
 
             JButton btnAgregar = new JButton("Nuevo apartado");
@@ -1064,9 +1153,9 @@ public class Project1 {
             c.gridx = 0; c.gridy = 4; c.gridwidth = 2; form.add(btnAgregar, c);
 
             DefaultTableModel model = new DefaultTableModel(new Object[]{"ID", "Cliente", "Monto", "Fecha"}, 0);
-            model.addRow(new Object[]{1, "Ana López", "$3,000", "2025-06-20"});
-            model.addRow(new Object[]{2, "Juan Pérez", "$5,500", "2025-06-22"});
-            model.addRow(new Object[]{3, "Maria García", "$4,000", "2025-06-25"});
+            model.addRow(new Object[]{1, "Ruben", "$3,000", "2026-09-30"});
+            model.addRow(new Object[]{2, "Bruno", "$5,500", "2026-09-28"});
+            model.addRow(new Object[]{3, "Roberto", "$4,000", "2026-09-28"});
             JTable table = new JTable(model);
 
             add(form, BorderLayout.WEST);
