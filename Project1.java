@@ -8,6 +8,8 @@ import java.io.IOException;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
 public class Project1 {
 
@@ -444,39 +446,64 @@ public class Project1 {
     }
 
     static class MenuFrame extends JFrame {
-        private final Color darkBrown = new Color(74, 42, 27);
-        private final Color softBg = new Color(244, 239, 233);
+        private final Color darkBrown = new Color(58, 34, 21);
+        private final Color softBg = new Color(248, 246, 242);
+        private final Color sidebarBrown = new Color(75, 46, 30);
+        private final Color selectedBrown = new Color(113, 72, 46);
+        private final Color mutedCream = new Color(226, 211, 195);
+        private final CardLayout pageLayout = new CardLayout();
+        private final JPanel pageContainer = new JPanel(pageLayout);
+        private final Map<String, JPanel> modulePages = new HashMap<>();
+        private final Map<String, JButton> navButtons = new HashMap<>();
 
         public MenuFrame() {
             setTitle("HOGARWOOD - Menú principal");
-            setSize(1200, 700);
+            setSize(1000, 650);
             setLocationRelativeTo(null);
             setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-            setResizable(false);
+            setResizable(true);
             getContentPane().setBackground(softBg);
 
             JPanel root = new JPanel(new BorderLayout());
             root.setBackground(softBg);
+            root.setBorder(BorderFactory.createLineBorder(new Color(43, 28, 19), 6));
 
             JPanel topBar = new JPanel(new BorderLayout());
             topBar.setBackground(darkBrown);
-            topBar.setBorder(BorderFactory.createEmptyBorder(12, 18, 12, 18));
+            topBar.setBorder(BorderFactory.createEmptyBorder(10, 22, 10, 22));
 
-            JLabel logo = new JLabel("🏠 NOMBRE  —  MUEBLERÍA");
-            logo.setForeground(Color.WHITE);
-            logo.setFont(new Font("Arial", Font.BOLD, 22));
+            JPanel brandText = new JPanel();
+            brandText.setOpaque(false);
+            brandText.setLayout(new BoxLayout(brandText, BoxLayout.Y_AXIS));
+            JLabel logo = new JLabel("HOLMWOOD");
+            logo.setForeground(new Color(255, 250, 242));
+            logo.setFont(new Font("Arial", Font.BOLD, 21));
+            JLabel logoSubtitle = new JLabel("M U E B L E R Í A");
+            logoSubtitle.setForeground(mutedCream);
+            logoSubtitle.setFont(new Font("Arial", Font.BOLD, 10));
+            brandText.add(logo);
+            brandText.add(logoSubtitle);
+
+            JLabel logoIcon = new JLabel(createMenuIcon("Inicio", new Color(255, 250, 242), 38));
+            JPanel brand = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 0));
+            brand.setOpaque(false);
+            brand.add(logoIcon);
+            brand.add(brandText);
 
             JPanel userPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
             userPanel.setOpaque(false);
-            JLabel iconUser = new JLabel("👤");
+            JLabel iconUser = new JLabel(createMenuIcon("Usuario", new Color(255, 250, 242), 32));
             JLabel userText = new JLabel("Usuario: admin");
-            userText.setForeground(Color.WHITE);
-            userText.setFont(new Font("Arial", Font.PLAIN, 14));
+            userText.setForeground(new Color(255, 250, 242));
+            userText.setFont(new Font("Arial", Font.BOLD, 13));
             JButton btnLogout = new JButton("Cerrar sesión");
-            btnLogout.setBackground(new Color(250, 250, 250, 40));
-            btnLogout.setForeground(Color.WHITE);
+            btnLogout.setBackground(new Color(91, 56, 36));
+            btnLogout.setForeground(new Color(255, 250, 242));
             btnLogout.setBorderPainted(false);
             btnLogout.setFocusPainted(false);
+            btnLogout.setFont(new Font("Arial", Font.BOLD, 12));
+            btnLogout.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+            btnLogout.setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 12));
             btnLogout.addActionListener(e -> {
                 new LoginFrame().setVisible(true);
                 dispose();
@@ -485,130 +512,313 @@ public class Project1 {
             userPanel.add(userText);
             userPanel.add(btnLogout);
 
-            topBar.add(logo, BorderLayout.WEST);
+            topBar.add(brand, BorderLayout.WEST);
             topBar.add(userPanel, BorderLayout.EAST);
 
             JPanel leftMenu = new JPanel();
-            leftMenu.setPreferredSize(new Dimension(220, 0));
-            leftMenu.setBackground(new Color(244, 239, 233));
-            leftMenu.setBorder(BorderFactory.createEmptyBorder(20, 16, 20, 16));
+            leftMenu.setPreferredSize(new Dimension(205, 0));
+            leftMenu.setBackground(sidebarBrown);
+            leftMenu.setBorder(BorderFactory.createEmptyBorder(18, 12, 18, 12));
             leftMenu.setLayout(new BoxLayout(leftMenu, BoxLayout.Y_AXIS));
+
+            JLabel navHeading = new JLabel("MENÚ PRINCIPAL");
+            navHeading.setForeground(mutedCream);
+            navHeading.setFont(new Font("Arial", Font.BOLD, 11));
+            navHeading.setBorder(BorderFactory.createEmptyBorder(4, 12, 12, 0));
+            navHeading.setAlignmentX(Component.LEFT_ALIGNMENT);
+            leftMenu.add(navHeading);
 
             String[] items = {"Inicio", "Muebles", "Ventas", "Gastos", "Apartados", "Impuestos", "Inventario", "Reportes"};
             for (String item : items) {
                 JButton btn = new JButton(item);
-                btn.setAlignmentX(Component.CENTER_ALIGNMENT);
-                btn.setMaximumSize(new Dimension(200, 42));
-                btn.setBackground(new Color(239, 234, 228));
-                btn.setForeground(new Color(61, 45, 33));
-                btn.setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 12));
+                boolean selected = item.equals("Inicio");
+                btn.setIcon(createMenuIcon(item, selected ? Color.WHITE : mutedCream, 25));
+                btn.setHorizontalAlignment(SwingConstants.LEFT);
+                btn.setIconTextGap(13);
+                btn.setAlignmentX(Component.LEFT_ALIGNMENT);
+                btn.setMaximumSize(new Dimension(Integer.MAX_VALUE, 44));
+                btn.setPreferredSize(new Dimension(181, 44));
+                btn.setBackground(selected ? selectedBrown : sidebarBrown);
+                btn.setForeground(new Color(255, 250, 242));
+                btn.setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 8));
                 btn.setFocusPainted(false);
-                btn.setFont(new Font("Arial", Font.BOLD, 14));
+                btn.setFont(new Font("Arial", selected ? Font.BOLD : Font.PLAIN, 14));
+                btn.setOpaque(true);
                 btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
                 btn.addActionListener(e -> openModule(item));
-                leftMenu.add(Box.createVerticalStrut(10));
+                leftMenu.add(Box.createVerticalStrut(5));
                 leftMenu.add(btn);
+                navButtons.put(item, btn);
             }
 
             JPanel content = new JPanel(new BorderLayout());
             content.setBackground(new Color(255, 255, 255));
-            content.setBorder(BorderFactory.createEmptyBorder(25, 25, 25, 25));
+            content.setBorder(BorderFactory.createEmptyBorder(28, 30, 28, 30));
 
             JLabel bienvenida = new JLabel("Bienvenido, admin");
-            bienvenida.setFont(new Font("Arial", Font.BOLD, 28));
-            bienvenida.setForeground(new Color(70, 47, 33));
-            bienvenida.setBorder(BorderFactory.createEmptyBorder(0, 0, 20, 0));
+            bienvenida.setFont(new Font("Arial", Font.BOLD, 26));
+            bienvenida.setForeground(new Color(42, 34, 29));
+            bienvenida.setBorder(BorderFactory.createEmptyBorder(0, 0, 4, 0));
 
-            JPanel cards = new JPanel(new GridLayout(2, 3, 20, 20));
+            JLabel bienvenidaSubtitle = new JLabel("Selecciona una opción para comenzar.");
+            bienvenidaSubtitle.setFont(new Font("Arial", Font.PLAIN, 14));
+            bienvenidaSubtitle.setForeground(new Color(100, 93, 86));
+
+            JPanel welcomeBlock = new JPanel();
+            welcomeBlock.setOpaque(false);
+            welcomeBlock.setLayout(new BoxLayout(welcomeBlock, BoxLayout.Y_AXIS));
+            welcomeBlock.add(bienvenida);
+            welcomeBlock.add(bienvenidaSubtitle);
+            welcomeBlock.setBorder(BorderFactory.createEmptyBorder(0, 0, 20, 0));
+
+            JPanel cards = new JPanel(new GridLayout(2, 3, 18, 18));
             cards.setOpaque(false);
 
             Object[][] modules = {
-                    {"Muebles", "🛋️", "Tipos y catálogo"},
-                    {"Ventas", "🛒", "Registrar y consultar"},
-                    {"Gastos", "💸", "Control de gastos"},
-                    {"Apartados", "🧾", "Gestionar apartados"},
-                    {"Impuestos", "💰", "Cálculo de impuestos"},
-                    {"Inventario", "📦", "Productos en stock"}
+                    {"Muebles", "Tipos y catálogo"},
+                    {"Ventas", "Registrar y consultar"},
+                    {"Gastos", "Control de gastos"},
+                    {"Apartados", "Gestionar apartados"},
+                    {"Impuestos", "Cálculo de impuestos"},
+                    {"Inventario", "Productos en stock"}
             };
 
-            for (Object[] m : modules) {
-                JPanel card = new JPanel();
-                card.setBackground(new Color(247, 242, 238));
-                card.setBorder(BorderFactory.createLineBorder(new Color(220, 214, 208), 1));
-                card.setLayout(new BorderLayout());
-                card.setPreferredSize(new Dimension(180, 130));
+            for (Object[] module : modules) {
+                String moduleName = String.valueOf(module[0]);
+                JPanel card = new JPanel(new BorderLayout());
+                card.setBackground(new Color(247, 243, 238));
+                card.setBorder(BorderFactory.createCompoundBorder(
+                        BorderFactory.createLineBorder(new Color(231, 224, 216), 1),
+                        BorderFactory.createEmptyBorder(10, 8, 10, 8)
+                ));
+                card.setPreferredSize(new Dimension(220, 150));
 
-                JLabel icon = new JLabel(String.valueOf(m[1]), SwingConstants.CENTER);
-                icon.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 38));
-                icon.setForeground(new Color(95, 67, 49));
-                icon.setBorder(BorderFactory.createEmptyBorder(18, 0, 0, 0));
+                JLabel icon = new JLabel(createMenuIcon(moduleName, darkBrown, 48));
+                icon.setHorizontalAlignment(SwingConstants.CENTER);
+                icon.setBorder(BorderFactory.createEmptyBorder(4, 0, 0, 0));
 
-                JLabel title = new JLabel(String.valueOf(m[0]), SwingConstants.CENTER);
-                title.setFont(new Font("Arial", Font.BOLD, 18));
-                title.setForeground(new Color(54, 36, 29));
+                JLabel title = new JLabel(moduleName, SwingConstants.CENTER);
+                title.setFont(new Font("Arial", Font.BOLD, 16));
+                title.setForeground(new Color(45, 34, 27));
 
-                JLabel desc = new JLabel(String.valueOf(m[2]), SwingConstants.CENTER);
-                desc.setFont(new Font("Arial", Font.PLAIN, 12));
-                desc.setForeground(new Color(106, 91, 81));
+                JLabel description = new JLabel(String.valueOf(module[1]), SwingConstants.CENTER);
+                description.setFont(new Font("Arial", Font.PLAIN, 12));
+                description.setForeground(new Color(102, 94, 86));
 
-                JPanel inner = new JPanel(new GridLayout(3, 1));
-                inner.setOpaque(false);
-                inner.add(title);
-                inner.add(desc);
+                JPanel cardText = new JPanel();
+                cardText.setOpaque(false);
+                cardText.setLayout(new BoxLayout(cardText, BoxLayout.Y_AXIS));
+                cardText.add(Box.createVerticalStrut(4));
+                cardText.add(title);
+                cardText.add(Box.createVerticalStrut(4));
+                cardText.add(description);
 
                 card.add(icon, BorderLayout.NORTH);
-                card.add(inner, BorderLayout.CENTER);
+                card.add(cardText, BorderLayout.CENTER);
                 card.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-                String action = String.valueOf(m[0]);
                 card.addMouseListener(new java.awt.event.MouseAdapter() {
                     @Override
                     public void mouseClicked(java.awt.event.MouseEvent e) {
-                        openModule(action);
+                        openModule(moduleName);
+                    }
+
+                    @Override
+                    public void mouseEntered(java.awt.event.MouseEvent e) {
+                        card.setBackground(new Color(241, 234, 226));
+                    }
+
+                    @Override
+                    public void mouseExited(java.awt.event.MouseEvent e) {
+                        card.setBackground(new Color(247, 243, 238));
                     }
                 });
                 cards.add(card);
             }
 
-            content.add(bienvenida, BorderLayout.NORTH);
+            content.add(welcomeBlock, BorderLayout.NORTH);
             content.add(cards, BorderLayout.CENTER);
 
+            pageContainer.setBackground(Color.WHITE);
+            pageContainer.add(content, "Inicio");
             root.add(topBar, BorderLayout.NORTH);
             root.add(leftMenu, BorderLayout.WEST);
-            root.add(content, BorderLayout.CENTER);
+            root.add(pageContainer, BorderLayout.CENTER);
             add(root);
         }
 
+        private Icon createMenuIcon(String name, Color color, int size) {
+            return new Icon() {
+                @Override
+                public void paintIcon(Component component, Graphics graphics, int x, int y) {
+                    Graphics2D g = (Graphics2D) graphics.create();
+                    g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                    g.translate(x, y);
+                    g.scale(size / 48.0, size / 48.0);
+                    g.setColor(color);
+                    g.setStroke(new BasicStroke(2.8f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+                    switch (name) {
+                        case "Inicio":
+                            g.drawLine(7, 23, 24, 8);
+                            g.drawLine(24, 8, 41, 23);
+                            g.drawRoundRect(12, 21, 24, 20, 2, 2);
+                            g.drawRect(21, 29, 7, 12);
+                            break;
+                        case "Usuario":
+                            g.drawOval(17, 7, 14, 14);
+                            g.drawArc(9, 23, 30, 23, 0, 180);
+                            break;
+                        case "Muebles":
+                            g.drawRoundRect(9, 20, 30, 15, 4, 4);
+                            g.drawRoundRect(13, 14, 22, 12, 4, 4);
+                            g.drawLine(9, 27, 5, 27);
+                            g.drawLine(39, 27, 43, 27);
+                            g.drawLine(13, 35, 12, 41);
+                            g.drawLine(35, 35, 36, 41);
+                            break;
+                        case "Ventas":
+                            g.drawLine(7, 10, 13, 10);
+                            g.drawLine(13, 10, 18, 32);
+                            g.drawLine(18, 32, 38, 32);
+                            g.drawLine(17, 18, 41, 18);
+                            g.drawLine(41, 18, 36, 28);
+                            g.drawLine(19, 22, 39, 22);
+                            g.drawOval(19, 36, 5, 5);
+                            g.drawOval(33, 36, 5, 5);
+                            break;
+                        case "Gastos":
+                            g.drawOval(8, 20, 25, 20);
+                            g.drawOval(14, 11, 25, 20);
+                            g.drawOval(21, 6, 20, 16);
+                            g.drawLine(26, 10, 26, 18);
+                            g.drawLine(23, 14, 29, 14);
+                            break;
+                        case "Apartados":
+                            g.drawRoundRect(9, 11, 30, 30, 3, 3);
+                            g.drawLine(9, 20, 39, 20);
+                            g.drawLine(17, 7, 17, 15);
+                            g.drawLine(31, 7, 31, 15);
+                            g.drawLine(16, 27, 20, 27);
+                            g.drawLine(27, 27, 31, 27);
+                            g.drawLine(16, 34, 20, 34);
+                            g.drawLine(27, 34, 31, 34);
+                            break;
+                        case "Impuestos":
+                            g.drawLine(13, 6, 29, 6);
+                            g.drawLine(29, 6, 37, 14);
+                            g.drawLine(37, 14, 37, 42);
+                            g.drawLine(13, 6, 13, 42);
+                            g.drawLine(13, 42, 37, 42);
+                            g.drawLine(29, 6, 29, 15);
+                            g.drawLine(29, 15, 37, 15);
+                            g.drawLine(19, 24, 31, 24);
+                            g.drawLine(19, 30, 31, 30);
+                            g.drawLine(19, 36, 28, 36);
+                            break;
+                        case "Inventario":
+                            g.drawLine(8, 17, 24, 8);
+                            g.drawLine(24, 8, 40, 17);
+                            g.drawLine(8, 17, 24, 26);
+                            g.drawLine(40, 17, 24, 26);
+                            g.drawLine(8, 17, 8, 34);
+                            g.drawLine(40, 17, 40, 34);
+                            g.drawLine(8, 34, 24, 43);
+                            g.drawLine(40, 34, 24, 43);
+                            g.drawLine(24, 26, 24, 43);
+                            break;
+                        case "Reportes":
+                            g.drawLine(8, 41, 8, 9);
+                            g.drawLine(8, 41, 41, 41);
+                            g.drawRoundRect(14, 27, 6, 14, 2, 2);
+                            g.drawRoundRect(24, 18, 6, 23, 2, 2);
+                            g.drawRoundRect(34, 10, 6, 31, 2, 2);
+                            break;
+                        default:
+                            g.drawOval(10, 10, 28, 28);
+                            break;
+                    }
+                    g.dispose();
+                }
+
+                @Override
+                public int getIconWidth() {
+                    return size;
+                }
+
+                @Override
+                public int getIconHeight() {
+                    return size;
+                }
+            };
+        }
+
         private void openModule(String name) {
-            switch (name) {
-                case "Muebles":
-                    new MueblesFrame().setVisible(true);
-                    break;
-                case "Ventas":
-                    new VentasFrame().setVisible(true);
-                    break;
-                case "Gastos":
-                    new GastosFrame().setVisible(true);
-                    break;
-                case "Apartados":
-                    new ApartadosFrame().setVisible(true);
-                    break;
-                case "Impuestos":
-                    new ImpuestosFrame().setVisible(true);
-                    break;
-                case "Inventario":
-                    new InventarioFrame().setVisible(true);
-                    break;
-                case "Reportes":
-                    JOptionPane.showMessageDialog(this, "Módulo de reportes en construcción");
-                    break;
-                default:
-                    JOptionPane.showMessageDialog(this, "Sección inicial");
-                    break;
+            if (name.equals("Inicio")) {
+                pageLayout.show(pageContainer, name);
+                updateSelectedNavigation(name);
+                return;
             }
+
+            JPanel module = modulePages.get(name);
+            if (module == null) {
+                switch (name) {
+                    case "Muebles":
+                        module = new MueblesPanel();
+                        break;
+                    case "Ventas":
+                        module = new VentasPanel();
+                        break;
+                    case "Gastos":
+                        module = new GastosPanel();
+                        break;
+                    case "Apartados":
+                        module = new ApartadosPanel();
+                        break;
+                    case "Impuestos":
+                        module = new ImpuestosPanel();
+                        break;
+                    case "Inventario":
+                        module = new InventarioPanel();
+                        break;
+                    case "Reportes":
+                        module = createReportsPanel();
+                        break;
+                    default:
+                        return;
+                }
+                modulePages.put(name, module);
+                pageContainer.add(module, name);
+            }
+            pageLayout.show(pageContainer, name);
+            updateSelectedNavigation(name);
+        }
+
+        private void updateSelectedNavigation(String selectedName) {
+            for (Map.Entry<String, JButton> entry : navButtons.entrySet()) {
+                boolean selected = entry.getKey().equals(selectedName);
+                JButton button = entry.getValue();
+                button.setBackground(selected ? selectedBrown : sidebarBrown);
+                button.setFont(new Font("Arial", selected ? Font.BOLD : Font.PLAIN, 14));
+                button.setIcon(createMenuIcon(entry.getKey(), selected ? Color.WHITE : mutedCream, 25));
+            }
+        }
+
+        private JPanel createReportsPanel() {
+            JPanel panel = new JPanel(new BorderLayout(0, 8));
+            panel.setBackground(Color.WHITE);
+            panel.setBorder(BorderFactory.createEmptyBorder(30, 32, 30, 32));
+            JLabel title = new JLabel("Reportes");
+            title.setFont(new Font("Arial", Font.BOLD, 26));
+            title.setForeground(new Color(42, 34, 29));
+            JLabel message = new JLabel("Módulo de reportes en construcción");
+            message.setFont(new Font("Arial", Font.PLAIN, 15));
+            message.setForeground(new Color(100, 93, 86));
+            panel.add(title, BorderLayout.NORTH);
+            panel.add(message, BorderLayout.CENTER);
+            return panel;
         }
     }
 
-    static class MueblesFrame extends JFrame {
+    static class MueblesPanel extends JPanel {
         private final DefaultTableModel model = new DefaultTableModel(
                 new Object[]{"ID", "Tipo", "Descripción", "Precio"}, 0
         );
@@ -619,13 +829,9 @@ public class Project1 {
         private final JTextField txtDescripcion = new JTextField();
         private final JTextField txtPrecio = new JTextField();
 
-        public MueblesFrame() {
-            setTitle("Tipos de muebles");
-            setSize(900, 430);
-            setLocationRelativeTo(null);
-            setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        public MueblesPanel() {
             setLayout(new BorderLayout(15, 15));
-            getContentPane().setBackground(new Color(247, 242, 238));
+            setBackground(new Color(247, 242, 238));
 
             JPanel form = new JPanel(new GridBagLayout());
             form.setBackground(new Color(255, 255, 255));
@@ -703,14 +909,10 @@ public class Project1 {
         }
     }
 
-    static class VentasFrame extends JFrame {
-        public VentasFrame() {
-            setTitle("Ventas");
-            setSize(950, 430);
-            setLocationRelativeTo(null);
-            setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+    static class VentasPanel extends JPanel {
+        public VentasPanel() {
             setLayout(new BorderLayout(15, 15));
-            getContentPane().setBackground(new Color(248, 247, 244));
+            setBackground(new Color(248, 247, 244));
 
             JPanel form = new JPanel(new GridBagLayout());
             form.setBorder(BorderFactory.createEmptyBorder(16, 16, 16, 16));
@@ -774,13 +976,10 @@ public class Project1 {
         }
     }
 
-    static class GastosFrame extends JFrame {
-        public GastosFrame() {
-            setTitle("Gastos");
-            setSize(900, 420);
-            setLocationRelativeTo(null);
-            setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+    static class GastosPanel extends JPanel {
+        public GastosPanel() {
             setLayout(new BorderLayout(15, 15));
+            setBackground(new Color(248, 247, 244));
 
             JPanel form = new JPanel(new GridBagLayout());
             form.setBorder(BorderFactory.createEmptyBorder(18, 18, 18, 18));
@@ -832,13 +1031,10 @@ public class Project1 {
         }
     }
 
-    static class ApartadosFrame extends JFrame {
-        public ApartadosFrame() {
-            setTitle("Apartados");
-            setSize(1000, 430);
-            setLocationRelativeTo(null);
-            setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+    static class ApartadosPanel extends JPanel {
+        public ApartadosPanel() {
             setLayout(new BorderLayout(15, 15));
+            setBackground(new Color(248, 247, 244));
 
             JPanel form = new JPanel(new GridBagLayout());
             form.setBorder(BorderFactory.createEmptyBorder(18, 18, 18, 18));
@@ -880,13 +1076,10 @@ public class Project1 {
         }
     }
 
-    static class ImpuestosFrame extends JFrame {
-        public ImpuestosFrame() {
-            setTitle("Impuestos");
-            setSize(700, 350);
-            setLocationRelativeTo(null);
-            setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+    static class ImpuestosPanel extends JPanel {
+        public ImpuestosPanel() {
             setLayout(new BorderLayout(15, 15));
+            setBackground(new Color(248, 247, 244));
 
             JPanel panel = new JPanel(new GridBagLayout());
             panel.setBorder(BorderFactory.createEmptyBorder(18, 18, 18, 18));
@@ -931,13 +1124,10 @@ public class Project1 {
         }
     }
 
-    static class InventarioFrame extends JFrame {
-        public InventarioFrame() {
-            setTitle("Inventario");
-            setSize(800, 400);
-            setLocationRelativeTo(null);
-            setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+    static class InventarioPanel extends JPanel {
+        public InventarioPanel() {
             setLayout(new BorderLayout(15, 15));
+            setBackground(new Color(248, 247, 244));
 
             JPanel top = new JPanel(new FlowLayout(FlowLayout.LEFT));
             top.setBorder(BorderFactory.createEmptyBorder(12, 12, 0, 12));
