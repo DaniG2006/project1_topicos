@@ -6,10 +6,16 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.text.DecimalFormat;
+import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.time.YearMonth;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
+import java.util.prefs.Preferences;
 
 public class Project1 {
 
@@ -29,6 +35,8 @@ public class Project1 {
     static class LoginFrame extends JFrame {
         private final JTextField txtUsuario = new JTextField();
         private final JPasswordField txtPassword = new JPasswordField();
+        private final JCheckBox chkRecordarme = new JCheckBox("Recordarme");
+        private final Preferences loginPreferences = Preferences.userNodeForPackage(Project1.class).node("login");
         private final JLabel lblLoginError = new JLabel("Usuario o contraseña incorrectos", SwingConstants.CENTER);
         private JPanel loginErrorContainer;
         private javax.swing.Timer loginErrorShakeTimer;
@@ -118,7 +126,6 @@ public class Project1 {
             brandGroup.add(brandNote);
 
             JPanel brandPlate = new JPanel(new BorderLayout()) {
-                @Override
                 protected void paintComponent(Graphics graphics) {
                     Graphics2D g = (Graphics2D) graphics.create();
                     g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
@@ -184,7 +191,6 @@ public class Project1 {
             txtUsuario.setText("Usuario");
             txtUsuario.setForeground(inputTextColor);
             txtUsuario.addFocusListener(new java.awt.event.FocusAdapter() {
-                @Override
                 public void focusGained(java.awt.event.FocusEvent e) {
                     if (txtUsuario.getText().equals("Usuario")) {
                         txtUsuario.setText("");
@@ -192,7 +198,6 @@ public class Project1 {
                     }
                 }
 
-                @Override
                 public void focusLost(java.awt.event.FocusEvent e) {
                     if (txtUsuario.getText().trim().isEmpty()) {
                         txtUsuario.setText("Usuario");
@@ -207,7 +212,6 @@ public class Project1 {
             txtPassword.setEchoChar((char) 0);
             txtPassword.setForeground(inputTextColor);
             txtPassword.addFocusListener(new java.awt.event.FocusAdapter() {
-                @Override
                 public void focusGained(java.awt.event.FocusEvent e) {
                     if (new String(txtPassword.getPassword()).equals("Contraseña")) {
                         txtPassword.setText("");
@@ -215,8 +219,6 @@ public class Project1 {
                         txtPassword.setForeground(inputTextColor);
                     }
                 }
-
-                @Override
                 public void focusLost(java.awt.event.FocusEvent e) {
                     if (txtPassword.getPassword().length == 0) {
                         txtPassword.setText("Contraseña");
@@ -225,6 +227,19 @@ public class Project1 {
                     }
                 }
             });
+
+            chkRecordarme.setOpaque(false);
+            chkRecordarme.setForeground(new Color(76, 46, 29));
+            chkRecordarme.setFont(new Font("Arial", Font.PLAIN, 14));
+            chkRecordarme.setAlignmentX(Component.LEFT_ALIGNMENT);
+            String rememberedUser = loginPreferences.get("username", "");
+            String rememberedPassword = loginPreferences.get("password", "");
+            if (!rememberedUser.isEmpty() && !rememberedPassword.isEmpty()) {
+                txtUsuario.setText(rememberedUser);
+                txtPassword.setText(rememberedPassword);
+                txtPassword.setEchoChar('\u2022');
+                chkRecordarme.setSelected(true);
+            }
 
             JPanel userField = createIconField(txtUsuario, createFieldIcon(false));
             JPanel passwordField = createIconField(txtPassword, createFieldIcon(true));
@@ -244,10 +259,17 @@ public class Project1 {
                 }
             };
             loginErrorContainer.setOpaque(false);
-            loginErrorContainer.setPreferredSize(new Dimension(396, 22));
+            loginErrorContainer.setPreferredSize(new Dimension(270, 22));
             loginErrorContainer.setMaximumSize(new Dimension(Integer.MAX_VALUE, 22));
-            loginErrorContainer.setAlignmentX(Component.CENTER_ALIGNMENT);
             loginErrorContainer.add(lblLoginError);
+
+            JPanel loginFeedbackRow = new JPanel(new BorderLayout(8, 0));
+            loginFeedbackRow.setOpaque(false);
+            loginFeedbackRow.setPreferredSize(new Dimension(396, 28));
+            loginFeedbackRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 28));
+            loginFeedbackRow.setAlignmentX(Component.CENTER_ALIGNMENT);
+            loginFeedbackRow.add(chkRecordarme, BorderLayout.WEST);
+            loginFeedbackRow.add(loginErrorContainer, BorderLayout.CENTER);
 
             JButton btnIngresar = new JButton("Ingresar") {
                 protected void paintComponent(Graphics graphics) {
@@ -293,9 +315,9 @@ public class Project1 {
             fields.add(userField);
             fields.add(Box.createVerticalStrut(16));
             fields.add(passwordField);
-            fields.add(Box.createVerticalStrut(4));
-            fields.add(loginErrorContainer);
-            fields.setMaximumSize(new Dimension(Integer.MAX_VALUE, 184));
+            fields.add(Box.createVerticalStrut(6));
+            fields.add(loginFeedbackRow);
+            fields.setMaximumSize(new Dimension(Integer.MAX_VALUE, 170));
 
             JPanel loginGroup = new JPanel();
             loginGroup.setOpaque(false);
@@ -480,12 +502,184 @@ public class Project1 {
             }
 
             if (usuario.equalsIgnoreCase("Dani Admin") && password.equals("DaniG2006")) {
+                if (chkRecordarme.isSelected()) {
+                    int saveCredentials = JOptionPane.showConfirmDialog(this,
+                            "¿Deseas guardar el usuario y la contraseña en este dispositivo?",
+                            "Recordarme",
+                            JOptionPane.YES_NO_OPTION,
+                            JOptionPane.QUESTION_MESSAGE);
+                    if (saveCredentials == JOptionPane.YES_OPTION) {
+                        loginPreferences.put("username", usuario);
+                        loginPreferences.put("password", password);
+                    } else {
+                        loginPreferences.remove("username");
+                        loginPreferences.remove("password");
+                        chkRecordarme.setSelected(false);
+                    }
+                } else {
+                    loginPreferences.remove("username");
+                    loginPreferences.remove("password");
+                }
                 new MenuFrame().setVisible(true);
                 dispose();
             } else {
                 showLoginError();
                 txtPassword.requestFocusInWindow();
             }
+        }
+    }
+
+    static class DatePickerField extends JPanel {
+        private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ISO_LOCAL_DATE;
+        private static final String[] MONTH_NAMES = {
+            "enero", "febrero", "marzo", "abril", "mayo", "junio",
+            "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"
+        };
+
+        private final JTextField dateInput;
+        private final JButton calendarButton;
+        private final JPopupMenu calendarPopup = new JPopupMenu();
+        private YearMonth displayedMonth;
+
+        DatePickerField(String initialDate) {
+            super(new BorderLayout(6, 0));
+            setOpaque(false);
+
+            dateInput = new JTextField(initialDate, 12);
+            calendarButton = new JButton(createCalendarIcon());
+            calendarButton.setToolTipText("Seleccionar fecha");
+            calendarButton.getAccessibleContext().setAccessibleName("Abrir calendario");
+            calendarButton.setFocusable(false);
+            calendarButton.setPreferredSize(new Dimension(34, 30));
+            calendarButton.setBackground(new Color(250, 247, 242));
+            calendarButton.setBorder(BorderFactory.createLineBorder(new Color(211, 198, 184)));
+            calendarButton.addActionListener(e -> {
+                try {
+                    displayedMonth = YearMonth.from(LocalDate.parse(dateInput.getText().trim(), DATE_FORMAT));
+                } catch (RuntimeException ex) {
+                    displayedMonth = YearMonth.now();
+                }
+                showCalendar();
+            });
+
+            add(dateInput, BorderLayout.CENTER);
+            add(calendarButton, BorderLayout.EAST);
+        }
+
+        String getDate() {
+            return dateInput.getText().trim();
+        }
+
+        private void showCalendar() {
+            calendarPopup.setVisible(false);
+            calendarPopup.removeAll();
+
+            JPanel calendar = new JPanel(new BorderLayout(4, 6));
+            calendar.setBackground(new Color(255, 252, 247));
+            calendar.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(new Color(211, 198, 184)),
+                    BorderFactory.createEmptyBorder(8, 8, 8, 8)
+            ));
+
+            JPanel monthHeader = new JPanel(new FlowLayout(FlowLayout.CENTER, 8, 0));
+            monthHeader.setOpaque(false);
+            JComboBox<String> monthSelector = new JComboBox<>(MONTH_NAMES);
+            monthSelector.setSelectedIndex(displayedMonth.getMonthValue() - 1);
+            monthSelector.setFont(new Font("Arial", Font.BOLD, 13));
+            monthSelector.setForeground(new Color(76, 46, 29));
+            monthSelector.setBackground(new Color(255, 252, 247));
+
+            JSpinner yearSelector = new JSpinner(
+                    new SpinnerNumberModel(displayedMonth.getYear(), 1900, 2100, 1));
+            yearSelector.setFont(new Font("Arial", Font.BOLD, 13));
+            JSpinner.NumberEditor yearEditor = new JSpinner.NumberEditor(yearSelector, "####");
+            yearSelector.setEditor(yearEditor);
+            yearEditor.getTextField().setForeground(new Color(76, 46, 29));
+            monthSelector.addActionListener(e -> {
+                displayedMonth = YearMonth.of(
+                        (Integer) yearSelector.getValue(), monthSelector.getSelectedIndex() + 1);
+                showCalendar();
+            });
+            yearSelector.addChangeListener(e -> {
+                displayedMonth = YearMonth.of(
+                        (Integer) yearSelector.getValue(), monthSelector.getSelectedIndex() + 1);
+                showCalendar();
+            });
+            monthHeader.add(monthSelector);
+            monthHeader.add(yearSelector);
+
+            JPanel days = new JPanel(new GridLayout(7, 7, 3, 3));
+            days.setOpaque(false);
+            String[] weekdays = {"Lu", "Ma", "Mi", "Ju", "Vi", "Sá", "Do"};
+            for (String weekday : weekdays) {
+                JLabel label = new JLabel(weekday, SwingConstants.CENTER);
+                label.setFont(new Font("Arial", Font.BOLD, 11));
+                label.setForeground(new Color(112, 91, 70));
+                days.add(label);
+            }
+
+            LocalDate firstDay = displayedMonth.atDay(1);
+            int leadingDays = firstDay.getDayOfWeek().getValue() - DayOfWeek.MONDAY.getValue();
+            for (int i = 0; i < leadingDays; i++) {
+                days.add(new JLabel(""));
+            }
+            LocalDate selectedDate = null;
+            try {
+                selectedDate = LocalDate.parse(dateInput.getText().trim(), DATE_FORMAT);
+            } catch (RuntimeException ignored) {
+            }
+            for (int day = 1; day <= displayedMonth.lengthOfMonth(); day++) {
+                LocalDate date = displayedMonth.atDay(day);
+                JButton dayButton = new JButton(Integer.toString(day));
+                dayButton.setFont(new Font("Arial", Font.PLAIN, 12));
+                dayButton.setForeground(new Color(62, 45, 33));
+                dayButton.setBackground(date.equals(selectedDate)
+                        ? new Color(226, 211, 195) : Color.WHITE);
+                dayButton.setFocusPainted(false);
+                dayButton.setBorder(BorderFactory.createLineBorder(new Color(236, 229, 220)));
+                dayButton.setPreferredSize(new Dimension(30, 28));
+                dayButton.addActionListener(e -> {
+                    dateInput.setText(date.format(DATE_FORMAT));
+                    calendarPopup.setVisible(false);
+                });
+                days.add(dayButton);
+            }
+            int trailingDays = 42 - leadingDays - displayedMonth.lengthOfMonth();
+            for (int i = 0; i < trailingDays; i++) {
+                days.add(new JLabel(""));
+            }
+
+            calendar.add(monthHeader, BorderLayout.NORTH);
+            calendar.add(days, BorderLayout.CENTER);
+            calendarPopup.add(calendar);
+            calendarPopup.show(calendarButton, 0, calendarButton.getHeight());
+        }
+
+        private Icon createCalendarIcon() {
+            return new Icon() {
+                @Override
+                public void paintIcon(Component component, Graphics graphics, int x, int y) {
+                    Graphics2D g = (Graphics2D) graphics.create();
+                    g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                    g.setColor(new Color(91, 68, 52));
+                    g.setStroke(new BasicStroke(1.6f));
+                    g.drawRoundRect(x + 2, y + 3, 16, 15, 3, 3);
+                    g.drawLine(x + 2, y + 8, x + 18, y + 8);
+                    g.drawLine(x + 6, y + 1, x + 6, y + 5);
+                    g.drawLine(x + 14, y + 1, x + 14, y + 5);
+                    g.dispose();
+                }
+
+                @Override
+                public int getIconWidth() {
+                    return 20;
+                }
+
+                @Override
+                public int getIconHeight() {
+                    return 20;
+                }
+            };
         }
     }
 
@@ -1015,7 +1209,7 @@ public class Project1 {
 
             c.gridwidth = 1;
             c.gridx = 0; c.gridy = 1; form.add(new JLabel("Fecha:"), c);
-            JTextField txtFecha = new JTextField("2025-06-01");
+            DatePickerField txtFecha = new DatePickerField("2025-06-01");
             c.gridx = 1; form.add(txtFecha, c);
 
             c.gridx = 0; c.gridy = 2; form.add(new JLabel("Cliente:"), c);
@@ -1056,7 +1250,7 @@ public class Project1 {
                     String unit = txtPrecio.getText().replace("$", "").replace(",", "");
                     double precioUnitario = Double.parseDouble(unit);
                     double total = cantidad * precioUnitario;
-                    tableModel.addRow(new Object[]{cmbCliente.getSelectedItem(), txtFecha.getText(), "$" + new DecimalFormat("#,##0.00").format(total), "Registrado"});
+                    tableModel.addRow(new Object[]{cmbCliente.getSelectedItem(), txtFecha.getDate(), "$" + new DecimalFormat("#,##0.00").format(total), "Registrado"});
                     JOptionPane.showMessageDialog(this, "Venta registrada correctamente");
                 } catch (Exception ex) {
                     JOptionPane.showMessageDialog(this, "Verifica los datos de la venta", "Error", JOptionPane.ERROR_MESSAGE);
@@ -1082,7 +1276,7 @@ public class Project1 {
 
             c.gridwidth = 1;
             c.gridx = 0; c.gridy = 1; form.add(new JLabel("Fecha:"), c);
-            JTextField txtFecha = new JTextField("2025-06-01");
+            DatePickerField txtFecha = new DatePickerField("2025-06-01");
             c.gridx = 1; form.add(txtFecha, c);
 
             c.gridx = 0; c.gridy = 2; form.add(new JLabel("Concepto:"), c);
@@ -1111,7 +1305,7 @@ public class Project1 {
             btnGuardar.addActionListener(e -> {
                 try {
                     double monto = Double.parseDouble(txtMonto.getText());
-                    model.addRow(new Object[]{txtFecha.getText(), cmbConcepto.getSelectedItem(), "$" + monto, txtDescripcion.getText()});
+                    model.addRow(new Object[]{txtFecha.getDate(), cmbConcepto.getSelectedItem(), "$" + monto, txtDescripcion.getText()});
                     JOptionPane.showMessageDialog(this, "Gasto guardado");
                 } catch (Exception ex) {
                     JOptionPane.showMessageDialog(this, "Monto inválido", "Error", JOptionPane.ERROR_MESSAGE);
@@ -1145,7 +1339,7 @@ public class Project1 {
             c.gridx = 1; form.add(txtMonto, c);
 
             c.gridx = 0; c.gridy = 3; form.add(new JLabel("Fecha:"), c);
-            JTextField txtFecha = new JTextField("2026-09-30");
+            DatePickerField txtFecha = new DatePickerField("2026-09-30");
             c.gridx = 1; form.add(txtFecha, c);
 
             JButton btnAgregar = new JButton("Nuevo apartado");
@@ -1161,7 +1355,7 @@ public class Project1 {
             add(form, BorderLayout.WEST);
             add(new JScrollPane(table), BorderLayout.CENTER);
 
-            btnAgregar.addActionListener(e -> model.addRow(new Object[]{model.getRowCount() + 1, txtCliente.getText(), txtMonto.getText(), txtFecha.getText()}));
+            btnAgregar.addActionListener(e -> model.addRow(new Object[]{model.getRowCount() + 1, txtCliente.getText(), txtMonto.getText(), txtFecha.getDate()}));
         }
     }
 
