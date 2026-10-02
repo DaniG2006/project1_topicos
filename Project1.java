@@ -10,14 +10,18 @@ import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.prefs.Preferences;
 
 public class Project1 {
 
     public static void main(String[] args) {
+        aplicarFuenteArial();
         SwingUtilities.invokeLater(() -> new LoginFrame().setVisible(true));
     }
 
@@ -526,12 +530,22 @@ public class Project1 {
         private final JButton calendarButton;
         private final JPopupMenu calendarPopup = new JPopupMenu();
         private YearMonth displayedMonth;
+        private JPanel daysPanel;
+        private JSpinner monthSelector;
+        private JSpinner yearSelector;
 
         DatePickerField(String initialDate) {
             super(new BorderLayout(6, 0));
             setOpaque(false);
 
             dateInput = new JTextField(initialDate, 12);
+            dateInput.setFont(new Font("Arial", Font.PLAIN, 14));
+            dateInput.setPreferredSize(new Dimension(130, 30));
+            dateInput.setBackground(new Color(252, 250, 246));
+            dateInput.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(new Color(211, 198, 184)),
+                    BorderFactory.createEmptyBorder(4, 8, 4, 8)));
+
             calendarButton = new JButton(createCalendarIcon());
             calendarButton.setToolTipText("Seleccionar fecha");
             calendarButton.getAccessibleContext().setAccessibleName("Abrir calendario");
@@ -569,51 +583,91 @@ public class Project1 {
 
             JPanel monthHeader = new JPanel(new FlowLayout(FlowLayout.CENTER, 8, 0));
             monthHeader.setOpaque(false);
-            JComboBox<String> monthSelector = new JComboBox<>(MONTH_NAMES);
-            monthSelector.setSelectedIndex(displayedMonth.getMonthValue() - 1);
-            monthSelector.setFont(new Font("Arial", Font.BOLD, 13));
-            monthSelector.setForeground(new Color(76, 46, 29));
-            monthSelector.setBackground(new Color(255, 252, 247));
 
-            JSpinner yearSelector = new JSpinner(
-                    new SpinnerNumberModel(displayedMonth.getYear(), 1900, 2100, 1));
+            monthSelector = new JSpinner(new SpinnerListModel(Arrays.asList(MONTH_NAMES)));
+            monthSelector.setValue(MONTH_NAMES[displayedMonth.getMonthValue() - 1]);
+            monthSelector.setFont(new Font("Arial", Font.BOLD, 13));
+            monthSelector.setPreferredSize(new Dimension(120, 30));
+            JSpinner.ListEditor monthEditor = new JSpinner.ListEditor(monthSelector);
+            monthSelector.setEditor(monthEditor);
+            monthEditor.getTextField().setEditable(false);
+            monthEditor.getTextField().setHorizontalAlignment(SwingConstants.CENTER);
+            monthEditor.getTextField().setForeground(new Color(76, 46, 29));
+
+            yearSelector = new JSpinner(new SpinnerNumberModel(displayedMonth.getYear(), 1900, 2100, 1));
             yearSelector.setFont(new Font("Arial", Font.BOLD, 13));
             JSpinner.NumberEditor yearEditor = new JSpinner.NumberEditor(yearSelector, "####");
             yearSelector.setEditor(yearEditor);
             yearEditor.getTextField().setForeground(new Color(76, 46, 29));
-            monthSelector.addActionListener(e -> {
-                displayedMonth = YearMonth.of(
-                        (Integer) yearSelector.getValue(), monthSelector.getSelectedIndex() + 1);
-                showCalendar();
+            yearEditor.getTextField().addFocusListener(new java.awt.event.FocusAdapter() {
+                @Override
+                public void focusLost(java.awt.event.FocusEvent e) {
+                    try {
+                        yearSelector.commitEdit();
+                    } catch (java.text.ParseException ignored) {
+                        // el texto no es un año válido: se conserva el valor anterior
+                    }
+                }
             });
-            yearSelector.addChangeListener(e -> {
-                displayedMonth = YearMonth.of(
-                        (Integer) yearSelector.getValue(), monthSelector.getSelectedIndex() + 1);
-                showCalendar();
-            });
+
+            monthSelector.addChangeListener(e -> aplicarSeleccion());
+            yearSelector.addChangeListener(e -> aplicarSeleccion());
+
             monthHeader.add(monthSelector);
             monthHeader.add(yearSelector);
 
-            JPanel days = new JPanel(new GridLayout(7, 7, 3, 3));
-            days.setOpaque(false);
+            daysPanel = new JPanel(new GridLayout(7, 7, 3, 3));
+            daysPanel.setOpaque(false);
+            refrescarDias();
+
+            calendar.add(monthHeader, BorderLayout.NORTH);
+            calendar.add(daysPanel, BorderLayout.CENTER);
+            calendarPopup.add(calendar);
+            calendarPopup.show(calendarButton, 0, calendarButton.getHeight());
+        }
+
+        /** Toma el mes y el año elegidos y repinta sólo la rejilla de días. */
+        private void aplicarSeleccion() {
+            if (daysPanel == null) {
+                return;
+            }
+            int mes = Arrays.asList(MONTH_NAMES).indexOf(String.valueOf(monthSelector.getValue())) + 1;
+            if (mes < 1 || mes > 12) {
+                return;
+            }
+            try {
+                displayedMonth = YearMonth.of((Integer) yearSelector.getValue(), mes);
+            } catch (RuntimeException ex) {
+                return;
+            }
+            refrescarDias();
+        }
+
+        /** Redibuja los días sin cerrar ni reconstruir el calendario. */
+        private void refrescarDias() {
+            daysPanel.removeAll();
+
             String[] weekdays = {"Lu", "Ma", "Mi", "Ju", "Vi", "Sá", "Do"};
             for (String weekday : weekdays) {
                 JLabel label = new JLabel(weekday, SwingConstants.CENTER);
                 label.setFont(new Font("Arial", Font.BOLD, 11));
                 label.setForeground(new Color(112, 91, 70));
-                days.add(label);
+                daysPanel.add(label);
             }
 
             LocalDate firstDay = displayedMonth.atDay(1);
             int leadingDays = firstDay.getDayOfWeek().getValue() - DayOfWeek.MONDAY.getValue();
             for (int i = 0; i < leadingDays; i++) {
-                days.add(new JLabel(""));
+                daysPanel.add(new JLabel(""));
             }
+
             LocalDate selectedDate = null;
             try {
                 selectedDate = LocalDate.parse(dateInput.getText().trim(), DATE_FORMAT);
             } catch (RuntimeException ignored) {
+                // la fecha escrita no es válida: no se resalta ningún día
             }
+
             for (int day = 1; day <= displayedMonth.lengthOfMonth(); day++) {
                 LocalDate date = displayedMonth.atDay(day);
                 JButton dayButton = new JButton(Integer.toString(day));
@@ -628,17 +682,15 @@ public class Project1 {
                     dateInput.setText(date.format(DATE_FORMAT));
                     calendarPopup.setVisible(false);
                 });
-                days.add(dayButton);
-            }
-            int trailingDays = 42 - leadingDays - displayedMonth.lengthOfMonth();
-            for (int i = 0; i < trailingDays; i++) {
-                days.add(new JLabel(""));
+                daysPanel.add(dayButton);
             }
 
-            calendar.add(monthHeader, BorderLayout.NORTH);
-            calendar.add(days, BorderLayout.CENTER);
-            calendarPopup.add(calendar);
-            calendarPopup.show(calendarButton, 0, calendarButton.getHeight());
+            int trailingDays = 42 - leadingDays - displayedMonth.lengthOfMonth();
+            for (int i = 0; i < trailingDays; i++) {
+                daysPanel.add(new JLabel(""));
+            }
+            daysPanel.revalidate();
+            daysPanel.repaint();
         }
 
         private Icon createCalendarIcon() {
@@ -879,6 +931,9 @@ public class Project1 {
                 pageContainer.add(module, name);
             }
             pageLayout.show(pageContainer, name);
+            if (module instanceof ModuloActualizable actualizable) {
+                actualizable.refrescar();
+            }
             updateSelectedNavigation(name);
         }
 
@@ -1157,341 +1212,1119 @@ public class Project1 {
         }
     }
 
-    static class MueblesPanel extends JPanel {
-        private final DefaultTableModel model = new DefaultTableModel(
-                new Object[]{"ID", "Tipo", "Descripción", "Precio"}, 0
-        );
-        private final JTable table = new JTable(model);
-        private final JComboBox<String> cmbTipo = new JComboBox<>(new String[]{
-                "Sala", "Comedor", "Recámara", "Oficina", "Infantil"
-        });
-        private final JTextField txtDescripcion = new JTextField();
-        private final JTextField txtPrecio = new JTextField();
+    // ==================================================================
+    //  Paleta y utilidades compartidas por los módulos
+    // ==================================================================
+    private static final Color PANEL_BG = new Color(250, 247, 241);
+    private static final Color CARD_BG = new Color(255, 253, 249);
+    private static final Color CARD_BORDER = new Color(233, 226, 216);
+    private static final Color TEXT_INK = new Color(46, 31, 20);
+    private static final Color TEXT_MUTED = new Color(122, 112, 102);
+    private static final Color BTN_PRIMARY = new Color(75, 46, 30);
+    private static final Color FIELD_BG = new Color(252, 250, 246);
 
-        public MueblesPanel() {
-            setLayout(new BorderLayout(15, 15));
-            setBackground(new Color(247, 242, 238));
+    /** Fuerza Arial como fuente por defecto de todos los componentes Swing. */
+    private static void aplicarFuenteArial() {
+        Font base = new Font("Arial", Font.PLAIN, 13);
+        String[] claves = {
+                "Label.font", "Button.font", "CheckBox.font", "RadioButton.font",
+                "TextField.font", "PasswordField.font", "TextArea.font", "ComboBox.font",
+                "List.font", "Table.font", "TableHeader.font", "Spinner.font",
+                "TitledBorder.font", "OptionPane.messageFont", "OptionPane.buttonFont",
+                "Menu.font", "MenuItem.font", "ToolTip.font"
+        };
+        for (String clave : claves) {
+            UIManager.put(clave, base);
+        }
+    }
 
-            JPanel form = new JPanel(new GridBagLayout());
-            form.setBackground(new Color(255, 255, 255));
-            form.setBorder(BorderFactory.createEmptyBorder(18, 18, 18, 18));
-            GridBagConstraints gc = new GridBagConstraints();
-            gc.insets = new Insets(8, 8, 8, 8);
-            gc.fill = GridBagConstraints.HORIZONTAL;
-
-            JLabel title = new JLabel("Tipos de muebles");
-            title.setFont(new Font("Arial", Font.BOLD, 26));
-            title.setForeground(new Color(71, 48, 35));
-
-            gc.gridx = 0; gc.gridy = 0; gc.gridwidth = 2;
-            form.add(title, gc);
-
-            gc.gridwidth = 1;
-            gc.gridx = 0; gc.gridy = 1; form.add(new JLabel("Tipo"), gc);
-            gc.gridx = 1; gc.gridy = 1; form.add(cmbTipo, gc);
-
-            gc.gridx = 0; gc.gridy = 2; form.add(new JLabel("Descripción"), gc);
-            gc.gridx = 1; gc.gridy = 2; form.add(txtDescripcion, gc);
-
-            gc.gridx = 0; gc.gridy = 3; form.add(new JLabel("Precio"), gc);
-            gc.gridx = 1; gc.gridy = 3; form.add(txtPrecio, gc);
-
-            JButton btnAgregar = new JButton("Agregar tipo");
-            styleButton(btnAgregar, new Color(123, 83, 53), Color.WHITE);
-            btnAgregar.addActionListener(e -> agregarMueble());
-
-            gc.gridx = 0; gc.gridy = 4; gc.gridwidth = 2; form.add(btnAgregar, gc);
-
-            JPanel right = new JPanel(new BorderLayout());
-            right.setBackground(new Color(252, 250, 247));
-            right.setBorder(BorderFactory.createEmptyBorder(10, 0, 0, 0));
-
-            table.setRowHeight(28);
-            table.setFillsViewportHeight(true);
-            JScrollPane scroll = new JScrollPane(table);
-            right.add(scroll, BorderLayout.CENTER);
-
-            add(form, BorderLayout.WEST);
-            add(right, BorderLayout.CENTER);
-
-            Object[][] initial = {
-                    {1, "Sala", "Sofás, sillas, mesas", "$4,500"},
-                    {2, "Comedor", "Mesas, sillas, vitrinas", "$6,100"},
-                    {3, "Recámara", "Camas, burós, armarios", "$5,300"},
-                    {4, "Oficina", "Escritorios, sillas", "$3,700"},
-                    {5, "Infantil", "Muebles para niños", "$2,900"}
-            };
-            for (Object[] row : initial) {
-                model.addRow(row);
+    /** Contenedor tipo tarjeta: fondo claro, esquinas redondeadas y borde fino. */
+    private static JPanel card(int radius) {
+        JPanel panel = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics graphics) {
+                Graphics2D g = (Graphics2D) graphics.create();
+                g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g.setColor(CARD_BG);
+                g.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 1, radius, radius);
+                g.setColor(CARD_BORDER);
+                g.setStroke(new BasicStroke(1f));
+                g.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, radius, radius);
+                g.dispose();
+                super.paintComponent(graphics);
             }
+        };
+        panel.setOpaque(false);
+        panel.setLayout(new BorderLayout(0, 14));
+        panel.setBorder(BorderFactory.createEmptyBorder(18, 20, 20, 20));
+        return panel;
+    }
+
+    private static JLabel cardTitle(String text) {
+        JLabel label = new JLabel(text);
+        label.setFont(new Font("Arial", Font.BOLD, 22));
+        label.setForeground(TEXT_INK);
+        return label;
+    }
+
+    private static JButton primaryButton(String text) {
+        JButton button = new JButton(text);
+        styleButton(button, BTN_PRIMARY, Color.WHITE);
+        button.setFont(new Font("Arial", Font.BOLD, 13));
+        button.setBorder(BorderFactory.createEmptyBorder(9, 18, 9, 18));
+        return button;
+    }
+
+    private static JButton secondaryButton(String text) {
+        JButton button = new JButton(text);
+        button.setBackground(new Color(242, 236, 229));
+        button.setForeground(TEXT_INK);
+        button.setFont(new Font("Arial", Font.PLAIN, 13));
+        button.setOpaque(true);
+        button.setFocusPainted(false);
+        button.setBorderPainted(false);
+        button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        button.setBorder(BorderFactory.createEmptyBorder(9, 18, 9, 18));
+        return button;
+    }
+
+    private static JTextField field() {
+        JTextField field = new JTextField(12);
+        field.setFont(new Font("Arial", Font.PLAIN, 14));
+        field.setBackground(FIELD_BG);
+        field.setPreferredSize(new Dimension(140, 32));
+        field.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(CARD_BORDER),
+                BorderFactory.createEmptyBorder(4, 8, 4, 8)));
+        return field;
+    }
+
+    private static void styleTable(JTable table) {
+        javax.swing.table.DefaultTableCellRenderer centrado = new javax.swing.table.DefaultTableCellRenderer();
+        centrado.setHorizontalAlignment(SwingConstants.CENTER);
+        table.setDefaultRenderer(Object.class, centrado);
+        table.setRowHeight(30);
+        table.setFillsViewportHeight(true);
+        table.setGridColor(CARD_BORDER);
+        table.setShowVerticalLines(false);
+        table.setSelectionBackground(new Color(238, 228, 216));
+        table.setSelectionForeground(TEXT_INK);
+        table.getTableHeader().setReorderingAllowed(false);
+        table.getTableHeader().setFont(new Font("Arial", Font.BOLD, 12));
+        table.getTableHeader().setBackground(new Color(245, 240, 233));
+    }
+
+    private static JScrollPane scroll(JTable table) {
+        JScrollPane pane = new JScrollPane(table);
+        pane.setBorder(BorderFactory.createLineBorder(CARD_BORDER));
+        pane.getViewport().setBackground(Color.WHITE);
+        return pane;
+    }
+
+    /** Encabezado de tarjeta: título a la izquierda y acciones opcionales a la derecha. */
+    private static JPanel encabezado(String titulo, JComponent... acciones) {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setOpaque(false);
+        panel.add(cardTitle(titulo), BorderLayout.WEST);
+        if (acciones.length > 0) {
+            JPanel derecha = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+            derecha.setOpaque(false);
+            for (JComponent accion : acciones) {
+                derecha.add(accion);
+            }
+            panel.add(derecha, BorderLayout.EAST);
+        }
+        return panel;
+    }
+
+    /** Botones "Editar" / "Eliminar" para una tabla (pasa null para omitir alguno). */
+    private static JPanel accionesDeTabla(JTable tabla, Runnable editar, Runnable eliminar) {
+        JPanel panel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+        panel.setOpaque(false);
+        if (editar != null) {
+            JButton boton = secondaryButton("Editar");
+            boton.addActionListener(e -> conSeleccion(tabla, editar));
+            panel.add(boton);
+        }
+        if (eliminar != null) {
+            JButton boton = secondaryButton("Eliminar");
+            boton.setForeground(new Color(150, 44, 36));
+            boton.addActionListener(e -> conSeleccion(tabla, eliminar));
+            panel.add(boton);
+        }
+        return panel;
+    }
+
+    /** Ejecuta la acción sólo si hay una fila seleccionada. */
+    private static void conSeleccion(JTable tabla, Runnable accion) {
+        if (tabla.getSelectedRow() < 0) {
+            JOptionPane.showMessageDialog(tabla, "Selecciona una fila de la tabla primero.",
+                    "Sin selección", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        accion.run();
+    }
+
+    /** Diálogo con botones "Cancelar" y "Guardar"; devuelve true si se pulsó Guardar. */
+    private static boolean dialogoGuardar(Component padre, JComponent contenido, String titulo) {
+        Object[] opciones = {"Cancelar", "Guardar"};
+        int opcion = JOptionPane.showOptionDialog(padre, contenido, titulo,
+                JOptionPane.DEFAULT_OPTION, JOptionPane.PLAIN_MESSAGE, null, opciones, opciones[1]);
+        return opcion == 1;
+    }
+
+    /** Diálogo de confirmación con botones "Cancelar" y "Eliminar". */
+    private static boolean dialogoEliminar(Component padre, String mensaje) {
+        Object[] opciones = {"Cancelar", "Eliminar"};
+        int opcion = JOptionPane.showOptionDialog(padre, mensaje, "Confirmar",
+                JOptionPane.DEFAULT_OPTION, JOptionPane.WARNING_MESSAGE, null, opciones, opciones[0]);
+        return opcion == 1;
+    }
+
+    /** Renderer que dibuja el estado como una "píldora" de color. */
+    private static final class BadgeRenderer extends JLabel implements javax.swing.table.TableCellRenderer {
+        private Color badgeBackground = Color.WHITE;
+
+        BadgeRenderer() {
+            setOpaque(false);
+            setHorizontalAlignment(SwingConstants.CENTER);
+            setFont(new Font("Arial", Font.BOLD, 12));
+        }
+
+        @Override
+        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected,
+                                                       boolean hasFocus, int row, int column) {
+            setText(value == null ? "" : value.toString());
+            boolean disponible = "Disponible".equals(value);
+            badgeBackground = disponible ? new Color(211, 234, 210) : new Color(245, 212, 208);
+            setForeground(disponible ? new Color(45, 95, 48) : new Color(152, 44, 36));
+            return this;
+        }
+
+        @Override
+        protected void paintComponent(Graphics graphics) {
+            Graphics2D g = (Graphics2D) graphics.create();
+            g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            FontMetrics fm = g.getFontMetrics();
+            int width = fm.stringWidth(getText()) + 22;
+            int height = fm.getHeight();
+            int x = (getWidth() - width) / 2;
+            int y = (getHeight() - height) / 2;
+            g.setColor(badgeBackground);
+            g.fillRoundRect(x, y, width, height, height, height);
+            g.dispose();
+            super.paintComponent(graphics);
+        }
+    }
+
+    // ==================================================================
+    //  Datos compartidos por todos los módulos
+    // ==================================================================
+    static final class Datos {
+        /** Catálogo de muebles: {tipo, descripción, precio} */
+        static final List<Object[]> MUEBLES = new ArrayList<>();
+        /** Existencias: producto -> stock */
+        static final Map<String, Integer> STOCK = new LinkedHashMap<>();
+        /** Ventas registradas: {cliente, fecha, total} */
+        static final List<Object[]> VENTAS = new ArrayList<>();
+        /** Gastos registrados: {fecha, concepto, monto, descripción} */
+        static final List<Object[]> GASTOS = new ArrayList<>();
+        /** Apartados: {id, cliente, monto, fecha} */
+        static final List<Object[]> APARTADOS = new ArrayList<>();
+
+        private Datos() {
+        }
+
+        static {
+            MUEBLES.add(new Object[]{"Sala", "Sofás, sillones, mesas", 4500.0});
+            MUEBLES.add(new Object[]{"Comedor", "Mesas, sillas, buffet, tocadores", 6100.0});
+            MUEBLES.add(new Object[]{"Recámara", "Camas, burós, tocadores", 5300.0});
+            MUEBLES.add(new Object[]{"Oficina", "Escritorios, sillas, libreros", 3700.0});
+            MUEBLES.add(new Object[]{"Infantil", "Muebles para niños", 2900.0});
+
+            STOCK.put("Sala", 10);
+            STOCK.put("Comedor", 5);
+            STOCK.put("Recámara", 0);
+            STOCK.put("Oficina", 8);
+            STOCK.put("Infantil", 3);
+
+            APARTADOS.add(new Object[]{1, "Ruben", "$3,000.00", "2025-05-20"});
+            APARTADOS.add(new Object[]{2, "Roberto", "$5,500.00", "2025-05-22"});
+            APARTADOS.add(new Object[]{3, "Carolina", "$4,000.00", "2025-05-25"});
+        }
+
+        /** Precio de catálogo del producto indicado (0 si no existe). */
+        static double precioDe(String producto) {
+            for (Object[] mueble : MUEBLES) {
+                if (mueble[0].equals(producto)) {
+                    return (Double) mueble[2];
+                }
+            }
+            return 0;
+        }
+
+        /** Da de alta el producto en el inventario si aún no existe. */
+        static void asegurarProducto(String producto, int stockInicial) {
+            if (producto != null && !producto.isBlank()) {
+                STOCK.putIfAbsent(producto, stockInicial);
+            }
+        }
+
+        static int siguienteIdApartado() {
+            int maximo = 0;
+            for (Object[] apartado : APARTADOS) {
+                maximo = Math.max(maximo, (Integer) apartado[0]);
+            }
+            return maximo + 1;
+        }
+
+        static double totalVentas() {
+            double total = 0;
+            for (Object[] venta : VENTAS) {
+                total += (Double) venta[2];
+            }
+            return total;
+        }
+    }
+
+    /** Formatea un valor como importe en pesos. */
+    static String dinero(double valor) {
+        return "$" + new DecimalFormat("#,##0.00").format(valor);
+    }
+
+    /** Módulo capaz de refrescar su contenido cuando vuelve a mostrarse. */
+    interface ModuloActualizable {
+        void refrescar();
+    }
+
+    // ==================================================================
+    //  Módulos
+    // ==================================================================
+    static class MueblesPanel extends JPanel implements ModuloActualizable {
+        private final DefaultTableModel model = new DefaultTableModel(
+                new Object[]{"ID", "Tipo", "Descripción", "Precio"}, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+        private final JTable table = new JTable(model);
+        private final JTextField txtTipo = field();
+        private final JTextField txtDescripcion = field();
+        private final JTextField txtPrecio = field();
+
+        MueblesPanel() {
+            setLayout(new BorderLayout());
+            setBackground(PANEL_BG);
+            setBorder(BorderFactory.createEmptyBorder(20, 22, 20, 22));
+
+            JPanel card = card(14);
+            card.add(encabezado("Tipos de muebles",
+                    accionesDeTabla(table, this::editarMueble, this::eliminarMueble)), BorderLayout.NORTH);
+            styleTable(table);
+            card.add(scroll(table), BorderLayout.CENTER);
+            card.add(construirFormulario(), BorderLayout.SOUTH);
+
+            add(card, BorderLayout.CENTER);
+            refrescar();
+        }
+
+        private JPanel construirFormulario() {
+            JPanel form = new JPanel(new GridBagLayout());
+            form.setOpaque(false);
+            GridBagConstraints gc = new GridBagConstraints();
+            gc.insets = new Insets(4, 0, 0, 10);
+            gc.fill = GridBagConstraints.HORIZONTAL;
+            gc.gridy = 0;
+
+            gc.gridx = 0; gc.weightx = 0; form.add(new JLabel("Tipo"), gc);
+            gc.gridx = 1; gc.weightx = 1; form.add(txtTipo, gc);
+            gc.gridx = 2; gc.weightx = 0; form.add(new JLabel("Descripción"), gc);
+            gc.gridx = 3; gc.weightx = 2; form.add(txtDescripcion, gc);
+            gc.gridx = 4; gc.weightx = 0; form.add(new JLabel("Precio"), gc);
+            gc.gridx = 5; gc.weightx = 1; form.add(txtPrecio, gc);
+
+            JButton btnAgregar = primaryButton("+ Agregar Tipo");
+            btnAgregar.addActionListener(e -> agregarMueble());
+            gc.gridx = 6; gc.weightx = 0; gc.insets = new Insets(4, 0, 0, 0);
+            form.add(btnAgregar, gc);
+            return form;
         }
 
         private void agregarMueble() {
-            String tipo = String.valueOf(cmbTipo.getSelectedItem());
+            String tipo = txtTipo.getText().trim();
             String descripcion = txtDescripcion.getText().trim();
-            String precio = txtPrecio.getText().trim();
+            String textoPrecio = txtPrecio.getText().trim().replace("$", "").replace(",", "");
+            if (tipo.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Escribe el tipo de mueble.",
+                        "Datos incompletos", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            double precio;
+            try {
+                precio = Double.parseDouble(textoPrecio);
+                if (precio < 0) {
+                    throw new NumberFormatException();
+                }
+            } catch (NumberFormatException ex) {
+                JOptionPane.showMessageDialog(this, "Ingresa un precio válido.",
+                        "Datos inválidos", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            Datos.MUEBLES.add(new Object[]{tipo, descripcion, precio});
+            Datos.asegurarProducto(tipo, 0);
+            txtTipo.setText("");
+            txtDescripcion.setText("");
+            txtPrecio.setText("");
+            refrescar();
+        }
 
-            if (descripcion.isEmpty() || precio.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Completa descripción y precio");
+        private void editarMueble() {
+            int fila = table.getSelectedRow();
+            Object[] mueble = Datos.MUEBLES.get(fila);
+            JTextField tipo = field();
+            JTextField descripcion = field();
+            JTextField precio = field();
+            tipo.setText(String.valueOf(mueble[0]));
+            descripcion.setText(String.valueOf(mueble[1]));
+            precio.setText(String.valueOf(mueble[2]));
+
+            JPanel formulario = new JPanel(new GridLayout(3, 2, 10, 10));
+            formulario.add(new JLabel("Tipo"));
+            formulario.add(tipo);
+            formulario.add(new JLabel("Descripción"));
+            formulario.add(descripcion);
+            formulario.add(new JLabel("Precio"));
+            formulario.add(precio);
+            if (!dialogoGuardar(this, formulario, "Editar tipo de mueble")) {
                 return;
             }
 
+            String nuevoTipo = tipo.getText().trim();
+            String textoPrecio = precio.getText().trim().replace("$", "").replace(",", "");
+            if (nuevoTipo.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "El tipo no puede quedar vacío.",
+                        "Datos incompletos", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            double nuevoPrecio;
             try {
-                Double.parseDouble(precio.replace("$", "").replace(",", ""));
-                model.addRow(new Object[]{model.getRowCount() + 1, tipo, descripcion, "$" + precio});
-                txtDescripcion.setText("");
-                txtPrecio.setText("");
-                JOptionPane.showMessageDialog(this, "Mueble agregado correctamente");
+                nuevoPrecio = Double.parseDouble(textoPrecio);
+                if (nuevoPrecio < 0) {
+                    throw new NumberFormatException();
+                }
             } catch (NumberFormatException ex) {
-                JOptionPane.showMessageDialog(this, "Ingrese un precio válido", "Error", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(this, "Ingresa un precio válido.",
+                        "Datos inválidos", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            String tipoAnterior = String.valueOf(mueble[0]);
+            if (!tipoAnterior.equals(nuevoTipo) && Datos.STOCK.containsKey(tipoAnterior)) {
+                Integer stock = Datos.STOCK.remove(tipoAnterior);
+                Datos.STOCK.put(nuevoTipo, stock == null ? 0 : stock);
+            }
+            Datos.MUEBLES.set(fila, new Object[]{nuevoTipo, descripcion.getText().trim(), nuevoPrecio});
+            refrescar();
+        }
+
+        private void eliminarMueble() {
+            int fila = table.getSelectedRow();
+            Object[] mueble = Datos.MUEBLES.get(fila);
+            if (!dialogoEliminar(this, "¿Eliminar \"" + mueble[0] + "\" del catálogo y del inventario?")) {
+                return;
+            }
+            Datos.STOCK.remove(String.valueOf(mueble[0]));
+            Datos.MUEBLES.remove(fila);
+            refrescar();
+        }
+
+        @Override
+        public void refrescar() {
+            model.setRowCount(0);
+            int id = 1;
+            for (Object[] mueble : Datos.MUEBLES) {
+                model.addRow(new Object[]{id++, mueble[0], mueble[1], dinero((Double) mueble[2])});
             }
         }
     }
 
-    static class VentasPanel extends JPanel {
-        public VentasPanel() {
-            setLayout(new BorderLayout(15, 15));
-            setBackground(new Color(248, 247, 244));
+    static class VentasPanel extends JPanel implements ModuloActualizable {
+        private final DatePickerField campoFecha = new DatePickerField(LocalDate.now().toString());
+        private final JComboBox<String> cmbCliente = new JComboBox<>(
+                new String[]{"Ruben", "Roberto", "Carolina", "Público general"});
+        private final JComboBox<String> cmbProducto = new JComboBox<>();
+        private final JTextField txtCantidad = field();
+        private final JLabel lblTotal = new JLabel("$0.00");
+        private final DefaultTableModel modeloDetalle = new DefaultTableModel(
+                new Object[]{"Producto", "Cantidad", "Precio", "Subtotal"}, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+        private final JTable tablaDetalle = new JTable(modeloDetalle);
+        private final DefaultTableModel modeloHistorial = new DefaultTableModel(
+                new Object[]{"Cliente", "Fecha", "Total"}, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+        private final JTable tablaHistorial = new JTable(modeloHistorial);
 
-            JPanel form = new JPanel(new GridBagLayout());
-            form.setBorder(BorderFactory.createEmptyBorder(16, 16, 16, 16));
-            GridBagConstraints c = new GridBagConstraints();
-            c.insets = new Insets(8, 8, 8, 8);
-            c.fill = GridBagConstraints.HORIZONTAL;
+        VentasPanel() {
+            setLayout(new BorderLayout(0, 16));
+            setBackground(PANEL_BG);
+            setBorder(BorderFactory.createEmptyBorder(20, 22, 20, 22));
 
-            JLabel title = new JLabel("Registro de ventas");
-            title.setFont(new Font("Arial", Font.BOLD, 26));
-            c.gridx = 0; c.gridy = 0; c.gridwidth = 2; form.add(title, c);
+            JPanel entrada = card(14);
+            entrada.add(cardTitle("Registro de ventas"), BorderLayout.NORTH);
+            entrada.add(construirEntrada(), BorderLayout.CENTER);
+            entrada.add(construirAcciones(), BorderLayout.SOUTH);
 
-            c.gridwidth = 1;
-            c.gridx = 0; c.gridy = 1; form.add(new JLabel("Fecha:"), c);
-            DatePickerField txtFecha = new DatePickerField("2025-06-01");
-            c.gridx = 1; form.add(txtFecha, c);
+            JPanel historial = card(14);
+            historial.add(encabezado("Ventas registradas",
+                    accionesDeTabla(tablaHistorial, null, this::eliminarVenta)), BorderLayout.NORTH);
+            styleTable(tablaHistorial);
+            historial.add(scroll(tablaHistorial), BorderLayout.CENTER);
+            historial.setPreferredSize(new Dimension(0, 180));
 
-            c.gridx = 0; c.gridy = 2; form.add(new JLabel("Cliente:"), c);
-            JComboBox<String> cmbCliente = new JComboBox<>(new String[]{"Seleccionar cliente", "Ana López", "Juan Pérez", "Maria García"});
-            c.gridx = 1; form.add(cmbCliente, c);
+            add(entrada, BorderLayout.CENTER);
+            add(historial, BorderLayout.SOUTH);
+            refrescar();
+        }
 
-            c.gridx = 0; c.gridy = 3; form.add(new JLabel("Producto:"), c);
-            JComboBox<String> cmbProducto = new JComboBox<>(new String[]{"Sofá", "Mesa", "Silla", "Escritorio"});
-            c.gridx = 1; form.add(cmbProducto, c);
+        private JPanel construirEntrada() {
+            JPanel contenedor = new JPanel();
+            contenedor.setOpaque(false);
+            contenedor.setLayout(new BoxLayout(contenedor, BoxLayout.Y_AXIS));
 
-            c.gridx = 0; c.gridy = 4; form.add(new JLabel("Cantidad:"), c);
-            JTextField txtCantidad = new JTextField("1");
-            c.gridx = 1; form.add(txtCantidad, c);
+            JPanel formulario = new JPanel(new GridBagLayout());
+            formulario.setOpaque(false);
+            GridBagConstraints gc = new GridBagConstraints();
+            gc.insets = new Insets(0, 0, 10, 12);
+            gc.fill = GridBagConstraints.HORIZONTAL;
+            gc.gridy = 0;
+            gc.gridx = 0; gc.weightx = 0; formulario.add(new JLabel("Fecha"), gc);
+            gc.gridx = 1; gc.weightx = 1; formulario.add(campoFecha, gc);
+            gc.gridx = 2; gc.weightx = 0; formulario.add(new JLabel("Cliente"), gc);
+            gc.gridx = 3; gc.weightx = 1; formulario.add(cmbCliente, gc);
+            gc.gridx = 4; gc.weightx = 0; formulario.add(new JLabel("Total"), gc);
+            lblTotal.setFont(new Font("Arial", Font.BOLD, 18));
+            lblTotal.setForeground(TEXT_INK);
+            gc.gridx = 5; gc.weightx = 1; formulario.add(lblTotal, gc);
 
-            c.gridx = 0; c.gridy = 5; form.add(new JLabel("Precio unitario:"), c);
-            JTextField txtPrecio = new JTextField("$5,000");
-            c.gridx = 1; form.add(txtPrecio, c);
+            JPanel agregar = new JPanel(new GridBagLayout());
+            agregar.setOpaque(false);
+            GridBagConstraints ga = new GridBagConstraints();
+            ga.insets = new Insets(0, 0, 10, 12);
+            ga.fill = GridBagConstraints.HORIZONTAL;
+            ga.gridy = 0;
+            ga.gridx = 0; ga.weightx = 0; agregar.add(new JLabel("Producto"), ga);
+            ga.gridx = 1; ga.weightx = 2; agregar.add(cmbProducto, ga);
+            ga.gridx = 2; ga.weightx = 0; agregar.add(new JLabel("Cantidad"), ga);
+            txtCantidad.setText("1");
+            txtCantidad.setPreferredSize(new Dimension(80, 32));
+            ga.gridx = 3; ga.weightx = 1; agregar.add(txtCantidad, ga);
+            JButton btnAnadir = secondaryButton("+ Añadir");
+            btnAnadir.addActionListener(e -> anadirDetalle());
+            ga.gridx = 4; ga.weightx = 0; ga.insets = new Insets(0, 0, 10, 0);
+            agregar.add(btnAnadir, ga);
 
-            JButton btnGuardar = new JButton("Guardar");
-            styleButton(btnGuardar, new Color(95, 65, 43), Color.WHITE);
-            c.gridx = 0; c.gridy = 6; c.gridwidth = 2; form.add(btnGuardar, c);
+            styleTable(tablaDetalle);
+            contenedor.add(formulario);
+            contenedor.add(agregar);
+            contenedor.add(scroll(tablaDetalle));
+            contenedor.add(accionesDeTabla(tablaDetalle, null, this::eliminarLinea));
+            return contenedor;
+        }
 
-            DefaultTableModel tableModel = new DefaultTableModel(new Object[]{"Cliente", "Fecha", "Total", "Estado"}, 0);
-            tableModel.addRow(new Object[]{"Ana López", "2025-06-20", "$3,000", "Pagado"});
-            tableModel.addRow(new Object[]{"Juan Pérez", "2025-06-22", "$5,500", "Pendiente"});
-            JTable table = new JTable(tableModel);
+        private JPanel construirAcciones() {
+            JPanel acciones = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+            acciones.setOpaque(false);
+            JButton btnCancelar = secondaryButton("Cancelar");
+            btnCancelar.addActionListener(e -> limpiarDetalle());
+            JButton btnGuardar = primaryButton("Guardar");
+            btnGuardar.addActionListener(e -> guardar());
+            acciones.add(btnCancelar);
+            acciones.add(btnGuardar);
+            return acciones;
+        }
 
-            JPanel right = new JPanel(new BorderLayout());
-            right.setBorder(BorderFactory.createEmptyBorder(10, 0, 0, 0));
-            right.add(new JScrollPane(table), BorderLayout.CENTER);
-
-            add(form, BorderLayout.WEST);
-            add(right, BorderLayout.CENTER);
-
-            btnGuardar.addActionListener(e -> {
-                try {
-                    double cantidad = Double.parseDouble(txtCantidad.getText());
-                    String unit = txtPrecio.getText().replace("$", "").replace(",", "");
-                    double precioUnitario = Double.parseDouble(unit);
-                    double total = cantidad * precioUnitario;
-                    tableModel.addRow(new Object[]{cmbCliente.getSelectedItem(), txtFecha.getDate(), "$" + new DecimalFormat("#,##0.00").format(total), "Registrado"});
-                    JOptionPane.showMessageDialog(this, "Venta registrada correctamente");
-                } catch (Exception ex) {
-                    JOptionPane.showMessageDialog(this, "Verifica los datos de la venta", "Error", JOptionPane.ERROR_MESSAGE);
+        private void anadirDetalle() {
+            String producto = (String) cmbProducto.getSelectedItem();
+            if (producto == null) {
+                return;
+            }
+            int cantidad;
+            try {
+                cantidad = Integer.parseInt(txtCantidad.getText().trim());
+                if (cantidad <= 0) {
+                    throw new NumberFormatException();
                 }
-            });
+            } catch (NumberFormatException ex) {
+                JOptionPane.showMessageDialog(this, "Ingresa una cantidad válida.",
+                        "Datos inválidos", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            double precio = Datos.precioDe(producto);
+            modeloDetalle.addRow(new Object[]{producto, cantidad, dinero(precio), dinero(precio * cantidad)});
+            txtCantidad.setText("1");
+            actualizarTotal();
         }
-    }
 
-    static class GastosPanel extends JPanel {
-        public GastosPanel() {
-            setLayout(new BorderLayout(15, 15));
-            setBackground(new Color(248, 247, 244));
+        private double totalDetalle() {
+            double total = 0;
+            for (int fila = 0; fila < modeloDetalle.getRowCount(); fila++) {
+                total += Datos.precioDe(String.valueOf(modeloDetalle.getValueAt(fila, 0)))
+                        * (Integer) modeloDetalle.getValueAt(fila, 1);
+            }
+            return total;
+        }
 
-            JPanel form = new JPanel(new GridBagLayout());
-            form.setBorder(BorderFactory.createEmptyBorder(18, 18, 18, 18));
-            GridBagConstraints c = new GridBagConstraints();
-            c.insets = new Insets(8, 8, 8, 8);
-            c.fill = GridBagConstraints.HORIZONTAL;
+        private void actualizarTotal() {
+            lblTotal.setText(dinero(totalDetalle()));
+        }
 
-            JLabel title = new JLabel("Registro de gastos");
-            title.setFont(new Font("Arial", Font.BOLD, 26));
-            c.gridx = 0; c.gridy = 0; c.gridwidth = 2; form.add(title, c);
-
-            c.gridwidth = 1;
-            c.gridx = 0; c.gridy = 1; form.add(new JLabel("Fecha:"), c);
-            DatePickerField txtFecha = new DatePickerField("2025-06-01");
-            c.gridx = 1; form.add(txtFecha, c);
-
-            c.gridx = 0; c.gridy = 2; form.add(new JLabel("Concepto:"), c);
-            JComboBox<String> cmbConcepto = new JComboBox<>(new String[]{"Seleccionar", "Luz", "Agua", "Internet", "Transporte", "Nomina"});
-            c.gridx = 1; form.add(cmbConcepto, c);
-
-            c.gridx = 0; c.gridy = 3; form.add(new JLabel("Monto:"), c);
-            JTextField txtMonto = new JTextField("0.00");
-            c.gridx = 1; form.add(txtMonto, c);
-
-            c.gridx = 0; c.gridy = 4; form.add(new JLabel("Descripción:"), c);
-            JTextArea txtDescripcion = new JTextArea(4, 18);
-            c.gridx = 1; form.add(new JScrollPane(txtDescripcion), c);
-
-            JButton btnGuardar = new JButton("Guardar");
-            styleButton(btnGuardar, new Color(95, 65, 43), Color.WHITE);
-            c.gridx = 0; c.gridy = 5; c.gridwidth = 2; form.add(btnGuardar, c);
-
-            DefaultTableModel model = new DefaultTableModel(new Object[]{"Fecha", "Concepto", "Monto", "Descripción"}, 0);
-            model.addRow(new Object[]{"2025-06-05", "Luz", "$520.00", "Consumo mensual"});
-            JTable table = new JTable(model);
-
-            add(form, BorderLayout.WEST);
-            add(new JScrollPane(table), BorderLayout.CENTER);
-
-            btnGuardar.addActionListener(e -> {
-                try {
-                    double monto = Double.parseDouble(txtMonto.getText());
-                    model.addRow(new Object[]{txtFecha.getDate(), cmbConcepto.getSelectedItem(), "$" + monto, txtDescripcion.getText()});
-                    JOptionPane.showMessageDialog(this, "Gasto guardado");
-                } catch (Exception ex) {
-                    JOptionPane.showMessageDialog(this, "Monto inválido", "Error", JOptionPane.ERROR_MESSAGE);
+        private void guardar() {
+            if (modeloDetalle.getRowCount() == 0) {
+                JOptionPane.showMessageDialog(this, "Añade al menos un producto.",
+                        "Venta vacía", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            for (int fila = 0; fila < modeloDetalle.getRowCount(); fila++) {
+                String producto = String.valueOf(modeloDetalle.getValueAt(fila, 0));
+                int cantidad = (Integer) modeloDetalle.getValueAt(fila, 1);
+                int disponible = Datos.STOCK.getOrDefault(producto, 0);
+                if (cantidad > disponible) {
+                    JOptionPane.showMessageDialog(this,
+                            "Stock insuficiente de \"" + producto + "\" (disponible: " + disponible + ").",
+                            "Sin existencias", JOptionPane.ERROR_MESSAGE);
+                    return;
                 }
-            });
+            }
+            double total = 0;
+            List<Object[]> lineas = new ArrayList<>();
+            for (int fila = 0; fila < modeloDetalle.getRowCount(); fila++) {
+                String producto = String.valueOf(modeloDetalle.getValueAt(fila, 0));
+                int cantidad = (Integer) modeloDetalle.getValueAt(fila, 1);
+                total += Datos.precioDe(producto) * cantidad;
+                Datos.STOCK.put(producto, Datos.STOCK.getOrDefault(producto, 0) - cantidad);
+                lineas.add(new Object[]{producto, cantidad});
+            }
+            Datos.VENTAS.add(new Object[]{cmbCliente.getSelectedItem(), campoFecha.getDate(), total, lineas});
+            JOptionPane.showMessageDialog(this, "Venta registrada: " + dinero(total));
+            limpiarDetalle();
+            refrescar();
+        }
+
+        private void limpiarDetalle() {
+            modeloDetalle.setRowCount(0);
+            txtCantidad.setText("1");
+            actualizarTotal();
+        }
+
+        private void eliminarLinea() {
+            modeloDetalle.removeRow(tablaDetalle.getSelectedRow());
+            actualizarTotal();
+        }
+
+        @SuppressWarnings("unchecked")
+        private void eliminarVenta() {
+            int fila = tablaHistorial.getSelectedRow();
+            Object[] venta = Datos.VENTAS.get(fila);
+            if (!dialogoEliminar(this, "¿Eliminar la venta de \"" + venta[0] + "\" por "
+                    + dinero((Double) venta[2]) + "? El stock se devolverá al inventario.")) {
+                return;
+            }
+            for (Object[] linea : (List<Object[]>) venta[3]) {
+                String producto = String.valueOf(linea[0]);
+                int cantidad = (Integer) linea[1];
+                Datos.STOCK.put(producto, Datos.STOCK.getOrDefault(producto, 0) + cantidad);
+            }
+            Datos.VENTAS.remove(fila);
+            refrescar();
+        }
+
+        @Override
+        public void refrescar() {
+            Object seleccionado = cmbProducto.getSelectedItem();
+            cmbProducto.removeAllItems();
+            for (String producto : Datos.STOCK.keySet()) {
+                cmbProducto.addItem(producto);
+            }
+            if (seleccionado != null) {
+                cmbProducto.setSelectedItem(seleccionado);
+            }
+            modeloHistorial.setRowCount(0);
+            for (Object[] venta : Datos.VENTAS) {
+                modeloHistorial.addRow(new Object[]{venta[0], venta[1], dinero((Double) venta[2])});
+            }
         }
     }
 
-    static class ApartadosPanel extends JPanel {
-        public ApartadosPanel() {
-            setLayout(new BorderLayout(15, 15));
-            setBackground(new Color(248, 247, 244));
+    static class GastosPanel extends JPanel implements ModuloActualizable {
+        private final DatePickerField campoFecha = new DatePickerField(LocalDate.now().toString());
+        private final JComboBox<String> cmbConcepto = new JComboBox<>(
+                new String[]{"Luz", "Agua", "Internet", "Transporte", "Nómina", "Otro"});
+        private final JTextField txtMonto = field();
+        private final JTextArea txtDescripcion = new JTextArea(3, 20);
+        private final DefaultTableModel modelo = new DefaultTableModel(
+                new Object[]{"Fecha", "Concepto", "Monto", "Descripción"}, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+        private final JTable tabla = new JTable(modelo);
 
+        GastosPanel() {
+            setLayout(new BorderLayout(0, 16));
+            setBackground(PANEL_BG);
+            setBorder(BorderFactory.createEmptyBorder(20, 22, 20, 22));
+
+            JPanel entrada = card(14);
+            entrada.add(cardTitle("Registro de gastos"), BorderLayout.NORTH);
+            entrada.add(construirFormulario(), BorderLayout.CENTER);
+            entrada.add(construirAcciones(), BorderLayout.SOUTH);
+
+            JPanel historial = card(14);
+            historial.add(encabezado("Gastos registrados",
+                    accionesDeTabla(tabla, this::editarGasto, this::eliminarGasto)), BorderLayout.NORTH);
+            styleTable(tabla);
+            historial.add(scroll(tabla), BorderLayout.CENTER);
+            historial.setPreferredSize(new Dimension(0, 180));
+
+            add(entrada, BorderLayout.CENTER);
+            add(historial, BorderLayout.SOUTH);
+            refrescar();
+        }
+
+        private JPanel construirFormulario() {
             JPanel form = new JPanel(new GridBagLayout());
-            form.setBorder(BorderFactory.createEmptyBorder(18, 18, 18, 18));
-            GridBagConstraints c = new GridBagConstraints();
-            c.insets = new Insets(8, 8, 8, 8);
-            c.fill = GridBagConstraints.HORIZONTAL;
+            form.setOpaque(false);
+            GridBagConstraints gc = new GridBagConstraints();
+            gc.insets = new Insets(0, 0, 10, 12);
+            gc.fill = GridBagConstraints.HORIZONTAL;
+            gc.gridy = 0;
+            gc.gridx = 0; gc.weightx = 0; form.add(new JLabel("Fecha"), gc);
+            gc.gridx = 1; gc.weightx = 1; form.add(campoFecha, gc);
+            gc.gridx = 2; gc.weightx = 0; form.add(new JLabel("Concepto"), gc);
+            gc.gridx = 3; gc.weightx = 1; form.add(cmbConcepto, gc);
+            gc.gridx = 4; gc.weightx = 0; form.add(new JLabel("Monto"), gc);
+            gc.gridx = 5; gc.weightx = 1; form.add(txtMonto, gc);
 
-            JLabel title = new JLabel("Apartados de clientes");
-            title.setFont(new Font("Arial", Font.BOLD, 26));
-            c.gridx = 0; c.gridy = 0; c.gridwidth = 2; form.add(title, c);
-
-            c.gridwidth = 1;
-            c.gridx = 0; c.gridy = 1; form.add(new JLabel("Cliente:"), c);
-            JTextField txtCliente = new JTextField("Ruben");
-            c.gridx = 1; form.add(txtCliente, c);
-
-            c.gridx = 0; c.gridy = 2; form.add(new JLabel("Monto:"), c);
-            JTextField txtMonto = new JTextField("$3,000");
-            c.gridx = 1; form.add(txtMonto, c);
-
-            c.gridx = 0; c.gridy = 3; form.add(new JLabel("Fecha:"), c);
-            DatePickerField txtFecha = new DatePickerField("2026-09-30");
-            c.gridx = 1; form.add(txtFecha, c);
-
-            JButton btnAgregar = new JButton("Nuevo apartado");
-            styleButton(btnAgregar, new Color(95, 65, 43), Color.WHITE);
-            c.gridx = 0; c.gridy = 4; c.gridwidth = 2; form.add(btnAgregar, c);
-
-            DefaultTableModel model = new DefaultTableModel(new Object[]{"ID", "Cliente", "Monto", "Fecha"}, 0);
-            model.addRow(new Object[]{1, "Ruben", "$3,000", "2026-09-30"});
-            model.addRow(new Object[]{2, "Bruno", "$5,500", "2026-09-28"});
-            model.addRow(new Object[]{3, "Roberto", "$4,000", "2026-09-28"});
-            JTable table = new JTable(model);
-
-            add(form, BorderLayout.WEST);
-            add(new JScrollPane(table), BorderLayout.CENTER);
-
-            btnAgregar.addActionListener(e -> model.addRow(new Object[]{model.getRowCount() + 1, txtCliente.getText(), txtMonto.getText(), txtFecha.getDate()}));
+            gc.gridx = 0; gc.gridy = 1; gc.weightx = 0; gc.insets = new Insets(0, 0, 0, 12);
+            form.add(new JLabel("Descripción"), gc);
+            txtDescripcion.setFont(new Font("Arial", Font.PLAIN, 14));
+            txtDescripcion.setBackground(FIELD_BG);
+            txtDescripcion.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(CARD_BORDER),
+                    BorderFactory.createEmptyBorder(6, 8, 6, 8)));
+            gc.gridx = 1; gc.gridwidth = 5; gc.weightx = 1;
+            form.add(new JScrollPane(txtDescripcion), gc);
+            return form;
         }
-    }
 
-    static class ImpuestosPanel extends JPanel {
-        public ImpuestosPanel() {
-            setLayout(new BorderLayout(15, 15));
-            setBackground(new Color(248, 247, 244));
+        private JPanel construirAcciones() {
+            JPanel acciones = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+            acciones.setOpaque(false);
+            JButton btnCancelar = secondaryButton("Cancelar");
+            btnCancelar.addActionListener(e -> limpiar());
+            JButton btnGuardar = primaryButton("Guardar");
+            btnGuardar.addActionListener(e -> guardar());
+            acciones.add(btnCancelar);
+            acciones.add(btnGuardar);
+            return acciones;
+        }
 
-            JPanel panel = new JPanel(new GridBagLayout());
-            panel.setBorder(BorderFactory.createEmptyBorder(18, 18, 18, 18));
-            GridBagConstraints c = new GridBagConstraints();
-            c.insets = new Insets(8, 8, 8, 8);
-            c.fill = GridBagConstraints.HORIZONTAL;
-
-            JLabel title = new JLabel("Cálculo de impuestos");
-            title.setFont(new Font("Arial", Font.BOLD, 26));
-            c.gridx = 0; c.gridy = 0; c.gridwidth = 2; panel.add(title, c);
-
-            c.gridwidth = 1;
-            c.gridx = 0; c.gridy = 1; panel.add(new JLabel("Subtotal:"), c);
-            JTextField txtSubtotal = new JTextField("10000");
-            c.gridx = 1; panel.add(txtSubtotal, c);
-
-            c.gridx = 0; c.gridy = 2; panel.add(new JLabel("IVA (%):"), c);
-            JTextField txtIva = new JTextField("16");
-            c.gridx = 1; panel.add(txtIva, c);
-
-            JButton btnCalcular = new JButton("Calcular");
-            styleButton(btnCalcular, new Color(95, 65, 43), Color.WHITE);
-            c.gridx = 0; c.gridy = 3; c.gridwidth = 2; panel.add(btnCalcular, c);
-
-            JLabel lblResultado = new JLabel("Total: $0.00");
-            lblResultado.setFont(new Font("Arial", Font.BOLD, 20));
-            lblResultado.setForeground(new Color(67, 45, 32));
-            c.gridx = 0; c.gridy = 4; c.gridwidth = 2; panel.add(lblResultado, c);
-
-            add(panel, BorderLayout.CENTER);
-
-            btnCalcular.addActionListener(e -> {
-                try {
-                    double subtotal = Double.parseDouble(txtSubtotal.getText());
-                    double iva = Double.parseDouble(txtIva.getText()) / 100;
-                    double total = subtotal + (subtotal * iva);
-                    lblResultado.setText("Total: $" + new DecimalFormat("#,##0.00").format(total));
-                } catch (Exception ex) {
-                    JOptionPane.showMessageDialog(this, "Valores inválidos", "Error", JOptionPane.ERROR_MESSAGE);
+        private void guardar() {
+            String textoMonto = txtMonto.getText().trim().replace("$", "").replace(",", "");
+            double monto;
+            try {
+                monto = Double.parseDouble(textoMonto);
+                if (monto <= 0) {
+                    throw new NumberFormatException();
                 }
-            });
+            } catch (NumberFormatException ex) {
+                JOptionPane.showMessageDialog(this, "Ingresa un monto válido.",
+                        "Datos inválidos", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            Datos.GASTOS.add(new Object[]{campoFecha.getDate(), cmbConcepto.getSelectedItem(),
+                    monto, txtDescripcion.getText().trim()});
+            JOptionPane.showMessageDialog(this, "Gasto registrado: " + dinero(monto));
+            limpiar();
+            refrescar();
+        }
+
+        private void limpiar() {
+            txtMonto.setText("");
+            txtDescripcion.setText("");
+        }
+
+        private void editarGasto() {
+            int fila = tabla.getSelectedRow();
+            Object[] gasto = Datos.GASTOS.get(fila);
+            DatePickerField fecha = new DatePickerField(String.valueOf(gasto[0]));
+            JComboBox<String> concepto = new JComboBox<>(
+                    new String[]{"Luz", "Agua", "Internet", "Transporte", "Nómina", "Otro"});
+            concepto.setSelectedItem(String.valueOf(gasto[1]));
+            JTextField monto = field();
+            monto.setText(String.valueOf(gasto[2]));
+            JTextArea descripcion = new JTextArea(String.valueOf(gasto[3]), 3, 18);
+
+            JPanel formulario = new JPanel(new GridBagLayout());
+            GridBagConstraints gc = new GridBagConstraints();
+            gc.insets = new Insets(0, 0, 8, 10);
+            gc.fill = GridBagConstraints.HORIZONTAL;
+            gc.gridx = 0; gc.gridy = 0; formulario.add(new JLabel("Fecha"), gc);
+            gc.gridx = 1; formulario.add(fecha, gc);
+            gc.gridx = 0; gc.gridy = 1; formulario.add(new JLabel("Concepto"), gc);
+            gc.gridx = 1; formulario.add(concepto, gc);
+            gc.gridx = 0; gc.gridy = 2; formulario.add(new JLabel("Monto"), gc);
+            gc.gridx = 1; formulario.add(monto, gc);
+            gc.gridx = 0; gc.gridy = 3; formulario.add(new JLabel("Descripción"), gc);
+            gc.gridx = 1; formulario.add(new JScrollPane(descripcion), gc);
+            if (!dialogoGuardar(this, formulario, "Editar gasto")) {
+                return;
+            }
+
+            double valor;
+            try {
+                valor = Double.parseDouble(monto.getText().trim().replace("$", "").replace(",", ""));
+                if (valor <= 0) {
+                    throw new NumberFormatException();
+                }
+            } catch (NumberFormatException ex) {
+                JOptionPane.showMessageDialog(this, "Ingresa un monto válido.",
+                        "Datos inválidos", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            Datos.GASTOS.set(fila, new Object[]{fecha.getDate(), concepto.getSelectedItem(), valor,
+                    descripcion.getText().trim()});
+            refrescar();
+        }
+
+        private void eliminarGasto() {
+            int fila = tabla.getSelectedRow();
+            Object[] gasto = Datos.GASTOS.get(fila);
+            if (!dialogoEliminar(this, "¿Eliminar el gasto de " + dinero((Double) gasto[2]) + "?")) {
+                return;
+            }
+            Datos.GASTOS.remove(fila);
+            refrescar();
+        }
+
+        @Override
+        public void refrescar() {
+            modelo.setRowCount(0);
+            for (Object[] gasto : Datos.GASTOS) {
+                modelo.addRow(new Object[]{gasto[0], gasto[1], dinero((Double) gasto[2]), gasto[3]});
+            }
         }
     }
 
-    static class InventarioPanel extends JPanel {
-        public InventarioPanel() {
-            setLayout(new BorderLayout(15, 15));
-            setBackground(new Color(248, 247, 244));
+    static class ApartadosPanel extends JPanel implements ModuloActualizable {
+        private final DefaultTableModel modelo = new DefaultTableModel(
+                new Object[]{"ID", "Cliente", "Monto", "Fecha"}, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+        private final JTable tabla = new JTable(modelo);
 
-            JPanel top = new JPanel(new FlowLayout(FlowLayout.LEFT));
-            top.setBorder(BorderFactory.createEmptyBorder(12, 12, 0, 12));
-            JLabel title = new JLabel("Inventario");
-            title.setFont(new Font("Arial", Font.BOLD, 26));
-            top.add(title);
+        ApartadosPanel() {
+            setLayout(new BorderLayout());
+            setBackground(PANEL_BG);
+            setBorder(BorderFactory.createEmptyBorder(20, 22, 20, 22));
 
-            DefaultTableModel model = new DefaultTableModel(new Object[]{"Producto", "Stock", "Estado"}, 0);
-            model.addRow(new Object[]{"Sofá", 10, "Disponible"});
-            model.addRow(new Object[]{"Mesa", 5, "Disponible"});
-            model.addRow(new Object[]{"Silla", 0, "Agotado"});
-            model.addRow(new Object[]{"Escritorio", 3, "Disponible"});
-            model.addRow(new Object[]{"Cama", 8, "Disponible"});
-            JTable table = new JTable(model);
+            JPanel card = card(14);
+            card.add(encabezado("Apartados de clientes",
+                    accionesDeTabla(tabla, this::editarApartado, this::eliminarApartado)), BorderLayout.NORTH);
+            styleTable(tabla);
+            card.add(scroll(tabla), BorderLayout.CENTER);
 
-            JButton btnActualizar = new JButton("Actualizar");
-            styleButton(btnActualizar, new Color(95, 65, 43), Color.WHITE);
-            btnActualizar.addActionListener(e -> {
-                model.setValueAt("Disponible", 2, 2);
-                JOptionPane.showMessageDialog(this, "Inventario actualizado");
-            });
-            top.add(btnActualizar);
+            JPanel acciones = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+            acciones.setOpaque(false);
+            JButton btnNuevo = primaryButton("+ Nuevo apartado");
+            btnNuevo.addActionListener(e -> nuevoApartado());
+            acciones.add(btnNuevo);
+            card.add(acciones, BorderLayout.SOUTH);
 
-            add(top, BorderLayout.NORTH);
-            add(new JScrollPane(table), BorderLayout.CENTER);
+            add(card, BorderLayout.CENTER);
+            refrescar();
+        }
+
+        private void nuevoApartado() {
+            JTextField cliente = field();
+            JTextField monto = field();
+            DatePickerField fecha = new DatePickerField(LocalDate.now().toString());
+            JPanel formulario = new JPanel(new GridLayout(3, 2, 10, 10));
+            formulario.add(new JLabel("Cliente"));
+            formulario.add(cliente);
+            formulario.add(new JLabel("Monto"));
+            formulario.add(monto);
+            formulario.add(new JLabel("Fecha"));
+            formulario.add(fecha);
+            if (!dialogoGuardar(this, formulario, "Nuevo apartado")) {
+                return;
+            }
+            String nombre = cliente.getText().trim();
+            String textoMonto = monto.getText().trim().replace("$", "").replace(",", "");
+            if (nombre.isEmpty() || textoMonto.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Completa cliente y monto.",
+                        "Datos incompletos", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            double valor;
+            try {
+                valor = Double.parseDouble(textoMonto);
+                if (valor < 0) {
+                    throw new NumberFormatException();
+                }
+            } catch (NumberFormatException ex) {
+                JOptionPane.showMessageDialog(this, "Ingresa un monto válido.",
+                        "Datos inválidos", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            Datos.APARTADOS.add(new Object[]{Datos.siguienteIdApartado(), nombre, dinero(valor), fecha.getDate()});
+            refrescar();
+        }
+
+        private void editarApartado() {
+            int fila = tabla.getSelectedRow();
+            Object[] apartado = Datos.APARTADOS.get(fila);
+            JTextField cliente = field();
+            cliente.setText(String.valueOf(apartado[1]));
+            JTextField monto = field();
+            monto.setText(String.valueOf(apartado[2]));
+            DatePickerField fecha = new DatePickerField(String.valueOf(apartado[3]));
+
+            JPanel formulario = new JPanel(new GridLayout(3, 2, 10, 10));
+            formulario.add(new JLabel("Cliente"));
+            formulario.add(cliente);
+            formulario.add(new JLabel("Monto"));
+            formulario.add(monto);
+            formulario.add(new JLabel("Fecha"));
+            formulario.add(fecha);
+            if (!dialogoGuardar(this, formulario, "Editar apartado")) {
+                return;
+            }
+
+            String nombre = cliente.getText().trim();
+            double valor;
+            try {
+                valor = Double.parseDouble(monto.getText().trim().replace("$", "").replace(",", ""));
+                if (valor < 0 || nombre.isEmpty()) {
+                    throw new NumberFormatException();
+                }
+            } catch (NumberFormatException ex) {
+                JOptionPane.showMessageDialog(this, "Revisa el cliente y el monto.",
+                        "Datos inválidos", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            Datos.APARTADOS.set(fila, new Object[]{apartado[0], nombre, dinero(valor), fecha.getDate()});
+            refrescar();
+        }
+
+        private void eliminarApartado() {
+            int fila = tabla.getSelectedRow();
+            Object[] apartado = Datos.APARTADOS.get(fila);
+            if (!dialogoEliminar(this, "¿Eliminar el apartado de \"" + apartado[1] + "\"?")) {
+                return;
+            }
+            Datos.APARTADOS.remove(fila);
+            refrescar();
+        }
+
+        @Override
+        public void refrescar() {
+            modelo.setRowCount(0);
+            for (Object[] apartado : Datos.APARTADOS) {
+                modelo.addRow(apartado);
+            }
+        }
+    }
+
+    static class ImpuestosPanel extends JPanel implements ModuloActualizable {
+        private final JTextField txtIva = field();
+        private final JLabel lblSubtotal = new JLabel("$0.00");
+        private final JLabel lblIva = new JLabel("$0.00");
+        private final JLabel lblTotal = new JLabel("$0.00");
+
+        ImpuestosPanel() {
+            setLayout(new BorderLayout());
+            setBackground(PANEL_BG);
+            setBorder(BorderFactory.createEmptyBorder(20, 22, 20, 22));
+
+            JPanel card = card(14);
+            card.add(cardTitle("Cálculo de impuestos"), BorderLayout.NORTH);
+            card.add(construirContenido(), BorderLayout.CENTER);
+
+            add(card, BorderLayout.CENTER);
+            refrescar();
+        }
+
+        private JPanel construirContenido() {
+            JPanel contenido = new JPanel();
+            contenido.setOpaque(false);
+            contenido.setLayout(new BoxLayout(contenido, BoxLayout.Y_AXIS));
+
+            JPanel iva = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+            iva.setOpaque(false);
+            iva.add(new JLabel("IVA (%)"));
+            txtIva.setText("16");
+            txtIva.setPreferredSize(new Dimension(80, 32));
+            iva.add(txtIva);
+
+            JPanel filas = new JPanel(new GridLayout(3, 2, 8, 8));
+            filas.setOpaque(false);
+            filas.add(new JLabel("Subtotal (ventas)"));
+            filas.add(lblSubtotal);
+            filas.add(new JLabel("IVA"));
+            filas.add(lblIva);
+            filas.add(new JLabel("Total"));
+            filas.add(lblTotal);
+            for (JLabel etiqueta : new JLabel[]{lblSubtotal, lblIva, lblTotal}) {
+                etiqueta.setFont(new Font("Arial", Font.BOLD, 18));
+                etiqueta.setForeground(TEXT_INK);
+            }
+
+            JButton btnCalcular = primaryButton("Calcular");
+            btnCalcular.addActionListener(e -> calcular());
+            JPanel acciones = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+            acciones.setOpaque(false);
+            acciones.add(btnCalcular);
+
+            JLabel nota = new JLabel("*El cálculo se realiza automáticamente a partir de las ventas registradas.");
+            nota.setFont(new Font("Arial", Font.ITALIC, 12));
+            nota.setForeground(TEXT_MUTED);
+
+            contenido.add(iva);
+            contenido.add(Box.createVerticalStrut(12));
+            contenido.add(filas);
+            contenido.add(Box.createVerticalStrut(14));
+            contenido.add(acciones);
+            contenido.add(Box.createVerticalStrut(14));
+            contenido.add(nota);
+            return contenido;
+        }
+
+        private void calcular() {
+            double porcentaje;
+            try {
+                porcentaje = Double.parseDouble(txtIva.getText().trim()) / 100.0;
+                if (porcentaje < 0) {
+                    throw new NumberFormatException();
+                }
+            } catch (NumberFormatException ex) {
+                JOptionPane.showMessageDialog(this, "Ingresa un IVA válido.",
+                        "Datos inválidos", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            double subtotal = Datos.totalVentas();
+            lblSubtotal.setText(dinero(subtotal));
+            lblIva.setText(dinero(subtotal * porcentaje));
+            lblTotal.setText(dinero(subtotal * (1 + porcentaje)));
+        }
+
+        @Override
+        public void refrescar() {
+            calcular();
+        }
+    }
+
+    static class InventarioPanel extends JPanel implements ModuloActualizable {
+        private final DefaultTableModel modelo = new DefaultTableModel(
+                new Object[]{"Producto", "Stock", "Estado"}, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+        private final JTable tabla = new JTable(modelo);
+        private final JComboBox<String> cmbProducto = new JComboBox<>();
+        private final JTextField txtStock = field();
+
+        InventarioPanel() {
+            setLayout(new BorderLayout());
+            setBackground(PANEL_BG);
+            setBorder(BorderFactory.createEmptyBorder(20, 22, 20, 22));
+
+            JPanel card = card(14);
+            card.add(encabezado("Inventario",
+                    accionesDeTabla(tabla, null, this::eliminarProducto)), BorderLayout.NORTH);
+            styleTable(tabla);
+            tabla.getColumnModel().getColumn(2).setCellRenderer(new BadgeRenderer());
+            card.add(scroll(tabla), BorderLayout.CENTER);
+            card.add(construirAcciones(), BorderLayout.SOUTH);
+
+            add(card, BorderLayout.CENTER);
+            refrescar();
+        }
+
+        private JPanel construirAcciones() {
+            JPanel acciones = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+            acciones.setOpaque(false);
+            acciones.add(new JLabel("Producto"));
+            cmbProducto.setPreferredSize(new Dimension(150, 32));
+            acciones.add(cmbProducto);
+            acciones.add(new JLabel("Stock"));
+            txtStock.setPreferredSize(new Dimension(80, 32));
+            acciones.add(txtStock);
+            JButton btnActualizar = primaryButton("Actualizar");
+            btnActualizar.addActionListener(e -> actualizar());
+            acciones.add(btnActualizar);
+            return acciones;
+        }
+
+        private void actualizar() {
+            String producto = (String) cmbProducto.getSelectedItem();
+            if (producto == null) {
+                return;
+            }
+            int stock;
+            try {
+                stock = Integer.parseInt(txtStock.getText().trim());
+                if (stock < 0) {
+                    throw new NumberFormatException();
+                }
+            } catch (NumberFormatException ex) {
+                JOptionPane.showMessageDialog(this, "Ingresa un stock válido.",
+                        "Datos inválidos", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            Datos.STOCK.put(producto, stock);
+            txtStock.setText("");
+            refrescar();
+        }
+
+        private void eliminarProducto() {
+            int fila = tabla.getSelectedRow();
+            String producto = String.valueOf(modelo.getValueAt(fila, 0));
+            if (!dialogoEliminar(this, "¿Eliminar \"" + producto + "\" del inventario?")) {
+                return;
+            }
+            Datos.STOCK.remove(producto);
+            refrescar();
+        }
+
+        @Override
+        public void refrescar() {
+            Object seleccionado = cmbProducto.getSelectedItem();
+            cmbProducto.removeAllItems();
+            modelo.setRowCount(0);
+            for (Map.Entry<String, Integer> entrada : Datos.STOCK.entrySet()) {
+                cmbProducto.addItem(entrada.getKey());
+                modelo.addRow(new Object[]{entrada.getKey(), entrada.getValue(),
+                        entrada.getValue() > 0 ? "Disponible" : "Agotado"});
+            }
+            if (seleccionado != null) {
+                cmbProducto.setSelectedItem(seleccionado);
+            }
         }
     }
 }
