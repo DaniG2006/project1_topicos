@@ -10,10 +10,8 @@ import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.Locale;
 import java.util.Map;
 import java.util.prefs.Preferences;
 
@@ -37,7 +35,7 @@ public class Project1 {
         private final JPasswordField txtPassword = new JPasswordField();
         private final JCheckBox chkRecordarme = new JCheckBox("Recordarme");
         private final Preferences loginPreferences = Preferences.userNodeForPackage(Project1.class).node("login");
-        private final JLabel lblLoginError = new JLabel("Usuario o contraseña incorrectos", SwingConstants.CENTER);
+        private final JLabel lblLoginError = new JLabel("Usuario y/o contraseña incorrecto", SwingConstants.CENTER);
         private JPanel loginErrorContainer;
         private javax.swing.Timer loginErrorShakeTimer;
         private int loginErrorOffset;
@@ -53,7 +51,6 @@ public class Project1 {
 
             JPanel left = new JPanel();
                 left.setBackground(new Color(250, 247, 242));
-                left.setBorder(BorderFactory.createEmptyBorder());
             left.setPreferredSize(new Dimension(500, 0));
             left.setLayout(new BorderLayout());
 
@@ -503,24 +500,13 @@ public class Project1 {
 
             if (usuario.equalsIgnoreCase("Dani Admin") && password.equals("DaniG2006")) {
                 if (chkRecordarme.isSelected()) {
-                    int saveCredentials = JOptionPane.showConfirmDialog(this,
-                            "¿Deseas guardar el usuario y la contraseña en este dispositivo?",
-                            "Recordarme",
-                            JOptionPane.YES_NO_OPTION,
-                            JOptionPane.QUESTION_MESSAGE);
-                    if (saveCredentials == JOptionPane.YES_OPTION) {
-                        loginPreferences.put("username", usuario);
-                        loginPreferences.put("password", password);
-                    } else {
-                        loginPreferences.remove("username");
-                        loginPreferences.remove("password");
-                        chkRecordarme.setSelected(false);
-                    }
+                    loginPreferences.put("username", usuario);
+                    loginPreferences.put("password", password);
                 } else {
                     loginPreferences.remove("username");
                     loginPreferences.remove("password");
                 }
-                new MenuFrame().setVisible(true);
+                new MenuFrame(usuario).setVisible(true);
                 dispose();
             } else {
                 showLoginError();
@@ -684,169 +670,161 @@ public class Project1 {
     }
 
     static class MenuFrame extends JFrame {
-        private final Color darkBrown = new Color(58, 34, 21);
-        private final Color softBg = new Color(248, 246, 242);
-        private final Color sidebarBrown = new Color(75, 46, 30);
-        private final Color selectedBrown = new Color(113, 72, 46);
-        private final Color mutedCream = new Color(226, 211, 195);
+        private static final Color SIDEBAR_BG = new Color(74, 43, 27);
+        private static final Color SIDEBAR_HOVER = new Color(95, 59, 39);
+        private static final Color SIDEBAR_SELECTED = new Color(124, 87, 66);
+        private static final Color CREAM_TEXT = new Color(246, 238, 229);
+        private static final Color CONTENT_BG = new Color(250, 247, 241);
+        private static final Color CARD_BG = new Color(239, 230, 218);
+        private static final Color CARD_HOVER = new Color(230, 217, 201);
+        private static final Color INK = new Color(46, 31, 20);
+        private static final Color MUTED_TEXT = new Color(107, 96, 88);
+        private static final Color MUTED_CREAM = new Color(208, 182, 164);
+
         private final CardLayout pageLayout = new CardLayout();
         private final JPanel pageContainer = new JPanel(pageLayout);
         private final Map<String, JPanel> modulePages = new HashMap<>();
-        private final Map<String, JButton> navButtons = new HashMap<>();
-        private String activePage = "Inicio";
+        private final Map<String, NavButton> navButtons = new HashMap<>();
+        private final String username;
 
-        public MenuFrame() {
+        public MenuFrame(String username) {
+            this.username = username;
             setTitle("HOGARWOOD - Menú principal");
-            setSize(1000, 650);
+            setSize(1060, 680);
             setLocationRelativeTo(null);
             setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
             setResizable(true);
-            getContentPane().setBackground(softBg);
+            getContentPane().setBackground(CONTENT_BG);
 
             JPanel root = new JPanel(new BorderLayout());
-            root.setBackground(softBg);
+            root.setBackground(CONTENT_BG);
+            root.add(buildHeader(), BorderLayout.NORTH);
+            root.add(buildSidebar(), BorderLayout.WEST);
+
+            pageContainer.setBackground(CONTENT_BG);
+            JPanel welcome = createWelcomePage();
+            modulePages.put("Inicio", welcome);
+            pageContainer.add(welcome, "Inicio");
+            root.add(pageContainer, BorderLayout.CENTER);
+
+            add(root);
+            updateSelectedNavigation("Inicio");
+        }
+
+        private JPanel buildHeader() {
+            JPanel header = new JPanel(new BorderLayout());
+            header.setBackground(SIDEBAR_BG);
+            header.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
+            header.setPreferredSize(new Dimension(0, 84));
 
             JPanel brandText = new JPanel();
             brandText.setOpaque(false);
             brandText.setLayout(new BoxLayout(brandText, BoxLayout.Y_AXIS));
-            JLabel logo = new JLabel("HOLMWOOD");
-            logo.setForeground(new Color(255, 250, 242));
-            logo.setFont(new Font("Arial", Font.BOLD, 21));
-            JLabel logoSubtitle = new JLabel("M U E B L E R Í A");
-            logoSubtitle.setForeground(mutedCream);
-            logoSubtitle.setFont(new Font("Arial", Font.BOLD, 10));
-            brandText.add(logo);
-            brandText.add(logoSubtitle);
+            JLabel brandName = new JLabel("HOGARWOOD");
+            brandName.setFont(new Font("Arial", Font.BOLD, 20));
+            brandName.setForeground(CREAM_TEXT);
+            brandName.setAlignmentX(Component.LEFT_ALIGNMENT);
+            JLabel brandSubtitle = new JLabel("M U E B L E R Í A");
+            brandSubtitle.setFont(new Font("Arial", Font.BOLD, 8));
+            brandSubtitle.setForeground(MUTED_CREAM);
+            brandSubtitle.setAlignmentX(Component.LEFT_ALIGNMENT);
+            brandText.add(Box.createVerticalGlue());
+            brandText.add(brandName);
+            brandText.add(Box.createVerticalStrut(3));
+            brandText.add(brandSubtitle);
+            brandText.add(Box.createVerticalGlue());
 
-            JLabel logoIcon = new JLabel(createMenuIcon("Inicio", new Color(255, 250, 242), 38));
-            JPanel brand = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 0));
+            JPanel brand = new JPanel(new BorderLayout(12, 0));
             brand.setOpaque(false);
-            brand.add(logoIcon);
-            brand.add(brandText);
+            brand.add(new JLabel(createHouseLogo(CREAM_TEXT, 46)), BorderLayout.WEST);
+            brand.add(brandText, BorderLayout.CENTER);
 
-            JPanel userPanel = new JPanel();
-            userPanel.setOpaque(false);
-            userPanel.setLayout(new BoxLayout(userPanel, BoxLayout.Y_AXIS));
-            JLabel iconUser = new JLabel(createMenuIcon("Usuario", mutedCream, 28));
-            JLabel userText = new JLabel("Usuario: Dani Admin");
-            userText.setForeground(new Color(255, 250, 242));
-            userText.setFont(new Font("Arial", Font.BOLD, 13));
+            header.add(brand, BorderLayout.WEST);
+            return header;
+        }
+
+        private JPanel buildSidebar() {
+            JPanel sidebar = new JPanel();
+            sidebar.setPreferredSize(new Dimension(206, 0));
+            sidebar.setBackground(SIDEBAR_BG);
+            sidebar.setBorder(BorderFactory.createEmptyBorder(8, 8, 14, 8));
+            sidebar.setLayout(new BoxLayout(sidebar, BoxLayout.Y_AXIS));
+
+            String[] items = {"Inicio", "Muebles", "Ventas", "Gastos",
+                    "Apartados", "Impuestos", "Inventario", "Reportes"};
+            for (String item : items) {
+                NavButton button = new NavButton(item, createMenuIcon(item, CREAM_TEXT, 22));
+                button.setAlignmentX(Component.LEFT_ALIGNMENT);
+                button.setMaximumSize(new Dimension(Integer.MAX_VALUE, 44));
+                button.setPreferredSize(new Dimension(190, 44));
+                button.addActionListener(e -> openModule(item));
+                sidebar.add(button);
+                sidebar.add(Box.createVerticalStrut(3));
+                navButtons.put(item, button);
+            }
+            sidebar.add(Box.createVerticalGlue());
+            sidebar.add(buildAccountSection());
+            return sidebar;
+        }
+
+        private JPanel buildAccountSection() {
+            JPanel section = new JPanel(new BorderLayout(10, 0));
+            section.setOpaque(false);
+            section.setAlignmentX(Component.LEFT_ALIGNMENT);
+            section.setMaximumSize(new Dimension(Integer.MAX_VALUE, 78));
+            section.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createMatteBorder(1, 0, 0, 0, new Color(112, 76, 55)),
+                    BorderFactory.createEmptyBorder(14, 8, 4, 8)));
+
+            JPanel texts = new JPanel();
+            texts.setOpaque(false);
+            texts.setLayout(new BoxLayout(texts, BoxLayout.Y_AXIS));
+            JLabel userText = new JLabel("Usuario: " + username);
+            userText.setForeground(CREAM_TEXT);
+            userText.setFont(new Font("Arial", Font.BOLD, 12));
             userText.setAlignmentX(Component.LEFT_ALIGNMENT);
-            Color logoutColor = new Color(91, 56, 36);
-            JButton btnLogout = new JButton("Cerrar sesión");
-            btnLogout.setBackground(logoutColor);
-            btnLogout.setForeground(new Color(255, 250, 242));
+            JButton btnLogout = new JButton("Cerrar sesión", createMenuIcon("Salir", MUTED_CREAM, 15));
+            btnLogout.setForeground(MUTED_CREAM);
+            btnLogout.setFont(new Font("Arial", Font.PLAIN, 12));
+            btnLogout.setContentAreaFilled(false);
             btnLogout.setBorderPainted(false);
             btnLogout.setFocusPainted(false);
-            btnLogout.setFont(new Font("Arial", Font.BOLD, 12));
+            btnLogout.setIconTextGap(6);
+            btnLogout.setMargin(new Insets(0, 0, 0, 0));
             btnLogout.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-            btnLogout.setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 12));
             btnLogout.setAlignmentX(Component.LEFT_ALIGNMENT);
             btnLogout.addActionListener(e -> {
                 new LoginFrame().setVisible(true);
                 dispose();
             });
-            btnLogout.addMouseListener(new java.awt.event.MouseAdapter() {
-                @Override
-                public void mousePressed(java.awt.event.MouseEvent e) {
-                    btnLogout.setBackground(logoutColor.darker());
-                }
+            texts.add(userText);
+            texts.add(Box.createVerticalStrut(3));
+            texts.add(btnLogout);
 
-                @Override
-                public void mouseReleased(java.awt.event.MouseEvent e) {
-                    btnLogout.setBackground(logoutColor);
-                    btnLogout.setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 12));
-                }
-            });
-            iconUser.setAlignmentX(Component.LEFT_ALIGNMENT);
-            userPanel.add(iconUser);
-            userPanel.add(Box.createVerticalStrut(6));
-            userPanel.add(userText);
-            userPanel.add(Box.createVerticalStrut(10));
-            userPanel.add(btnLogout);
+            section.add(new JLabel(createMenuIcon("Usuario", CREAM_TEXT, 26)), BorderLayout.WEST);
+            section.add(texts, BorderLayout.CENTER);
+            return section;
+        }
 
-            JPanel leftMenu = new JPanel();
-            leftMenu.setPreferredSize(new Dimension(225, 0));
-            leftMenu.setBackground(sidebarBrown);
-            leftMenu.setBorder(BorderFactory.createEmptyBorder(16, 8, 4, 8));
-            leftMenu.setLayout(new BoxLayout(leftMenu, BoxLayout.Y_AXIS));
-            brand.setAlignmentX(Component.LEFT_ALIGNMENT);
-            brand.setBorder(BorderFactory.createEmptyBorder(0, 8, 20, 0));
-            leftMenu.add(brand);
+        private JPanel createWelcomePage() {
+            JPanel page = new JPanel(new BorderLayout(0, 22));
+            page.setBackground(CONTENT_BG);
+            page.setBorder(BorderFactory.createEmptyBorder(26, 30, 26, 30));
 
-            JLabel navHeading = new JLabel("MENÚ PRINCIPAL");
-            navHeading.setForeground(mutedCream);
-            navHeading.setFont(new Font("Arial", Font.BOLD, 11));
-            navHeading.setBorder(BorderFactory.createEmptyBorder(4, 12, 12, 0));
-            navHeading.setAlignmentX(Component.LEFT_ALIGNMENT);
-            leftMenu.add(navHeading);
-
-            String[] items = {"Inicio", "Muebles", "Ventas", "Gastos", "Apartados", "Impuestos", "Inventario", "Reportes"};
-            for (String item : items) {
-                JButton btn = new JButton(item);
-                boolean selected = item.equals("Inicio");
-                btn.setIcon(createMenuIcon(item, selected ? Color.WHITE : mutedCream, 25));
-                btn.setHorizontalAlignment(SwingConstants.LEFT);
-                btn.setIconTextGap(13);
-                btn.setAlignmentX(Component.LEFT_ALIGNMENT);
-                btn.setMaximumSize(new Dimension(Integer.MAX_VALUE, 44));
-                btn.setPreferredSize(new Dimension(181, 44));
-                btn.setBackground(selected ? selectedBrown : sidebarBrown);
-                btn.setForeground(new Color(255, 250, 242));
-                btn.setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 8));
-                btn.setFocusPainted(false);
-                btn.setFont(new Font("Arial", selected ? Font.BOLD : Font.PLAIN, 14));
-                btn.setOpaque(true);
-                btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-                btn.setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 8));
-                btn.addActionListener(e -> openModule(item));
-                btn.addMouseListener(new java.awt.event.MouseAdapter() {
-                    @Override
-                    public void mousePressed(java.awt.event.MouseEvent e) {
-                        Color baseColor = item.equals(activePage) ? selectedBrown : sidebarBrown;
-                        btn.setBackground(baseColor.darker());
-                    }
-
-                    @Override
-                    public void mouseReleased(java.awt.event.MouseEvent e) {
-                        updateSelectedNavigation(activePage);
-                    }
-                });
-                leftMenu.add(Box.createVerticalStrut(5));
-                leftMenu.add(btn);
-                navButtons.put(item, btn);
-            }
-
-            leftMenu.add(Box.createVerticalGlue());
-            JPanel accountSection = new JPanel(new BorderLayout(0, 0));
-            accountSection.setOpaque(false);
-            accountSection.setAlignmentX(Component.LEFT_ALIGNMENT);
-                accountSection.setBorder(BorderFactory.createEmptyBorder(2, 4, 0, 4));
-            accountSection.add(userPanel, BorderLayout.CENTER);
-            leftMenu.add(accountSection);
-
-            JPanel content = new JPanel(new BorderLayout());
-            content.setBackground(new Color(255, 255, 255));
-            content.setBorder(BorderFactory.createEmptyBorder(28, 30, 28, 30));
-
-            JLabel bienvenida = new JLabel("Bienvenido, Dani Admin");
-            bienvenida.setFont(new Font("Arial", Font.BOLD, 26));
-            bienvenida.setForeground(new Color(42, 34, 29));
-            bienvenida.setBorder(BorderFactory.createEmptyBorder(0, 0, 4, 0));
-
-            JLabel bienvenidaSubtitle = new JLabel("Selecciona una opción para comenzar.");
-            bienvenidaSubtitle.setFont(new Font("Arial", Font.PLAIN, 14));
-            bienvenidaSubtitle.setForeground(new Color(100, 93, 86));
-
-            JPanel welcomeBlock = new JPanel();
-            welcomeBlock.setOpaque(false);
-            welcomeBlock.setLayout(new BoxLayout(welcomeBlock, BoxLayout.Y_AXIS));
-            welcomeBlock.add(bienvenida);
-            welcomeBlock.add(bienvenidaSubtitle);
-            welcomeBlock.setBorder(BorderFactory.createEmptyBorder(0, 0, 20, 0));
-
-            JPanel cards = new JPanel(new GridLayout(2, 3, 18, 18));
-            cards.setOpaque(false);
+            JPanel heading = new JPanel();
+            heading.setOpaque(false);
+            heading.setLayout(new BoxLayout(heading, BoxLayout.Y_AXIS));
+            JLabel title = new JLabel("Bienvenido, " + username);
+            title.setFont(new Font("Arial", Font.BOLD, 27));
+            title.setForeground(INK);
+            title.setAlignmentX(Component.LEFT_ALIGNMENT);
+            JLabel subtitle = new JLabel("Selecciona una opción del menú para comenzar.");
+            subtitle.setFont(new Font("Arial", Font.PLAIN, 15));
+            subtitle.setForeground(MUTED_TEXT);
+            subtitle.setAlignmentX(Component.LEFT_ALIGNMENT);
+            heading.add(title);
+            heading.add(Box.createVerticalStrut(6));
+            heading.add(subtitle);
 
             Object[][] modules = {
                     {"Muebles", "Tipos y catálogo"},
@@ -856,80 +834,110 @@ public class Project1 {
                     {"Impuestos", "Cálculo de impuestos"},
                     {"Inventario", "Productos en stock"}
             };
-
+            JPanel cards = new JPanel(new GridLayout(2, 3, 20, 20));
+            cards.setOpaque(false);
             for (Object[] module : modules) {
-                String moduleName = String.valueOf(module[0]);
-                JPanel card = new JPanel(new BorderLayout());
-                card.setBackground(new Color(247, 243, 238));
-                card.setBorder(BorderFactory.createLineBorder(new Color(231, 224, 216), 1));
-                card.setPreferredSize(new Dimension(220, 150));
-
-                JLabel icon = new JLabel(createMenuIcon(moduleName, darkBrown, 48));
-                icon.setHorizontalAlignment(SwingConstants.CENTER);
-                icon.setBorder(BorderFactory.createEmptyBorder(4, 0, 0, 0));
-
-                JLabel title = new JLabel(moduleName, SwingConstants.CENTER);
-                title.setFont(new Font("Arial", Font.BOLD, 16));
-                title.setForeground(new Color(45, 34, 27));
-
-                JLabel description = new JLabel(String.valueOf(module[1]), SwingConstants.CENTER);
-                description.setFont(new Font("Arial", Font.PLAIN, 12));
-                description.setForeground(new Color(102, 94, 86));
-
-                JPanel cardText = new JPanel();
-                cardText.setOpaque(false);
-                cardText.setLayout(new BoxLayout(cardText, BoxLayout.Y_AXIS));
-                cardText.add(Box.createVerticalStrut(4));
-                cardText.add(title);
-                cardText.add(Box.createVerticalStrut(4));
-                cardText.add(description);
-
-                card.add(icon, BorderLayout.NORTH);
-                card.add(cardText, BorderLayout.CENTER);
-                card.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-                card.addMouseListener(new java.awt.event.MouseAdapter() {
-                    @Override
-                    public void mouseClicked(java.awt.event.MouseEvent e) {
-                        openModule(moduleName);
-                    }
-
-                    @Override
-                    public void mousePressed(java.awt.event.MouseEvent e) {
-                        card.setBackground(new Color(247, 243, 238).darker());
-                    }
-
-                    @Override
-                    public void mouseReleased(java.awt.event.MouseEvent e) {
-                        card.setBackground(card.contains(e.getPoint())
-                                ? new Color(241, 234, 226)
-                                : new Color(247, 243, 238));
-                    }
-
-                    @Override
-                    public void mouseEntered(java.awt.event.MouseEvent e) {
-                        card.setBackground(new Color(241, 234, 226));
-                    }
-
-                    @Override
-                    public void mouseExited(java.awt.event.MouseEvent e) {
-                        card.setBackground(new Color(247, 243, 238));
-                    }
-                });
-                cards.add(card);
+                String name = String.valueOf(module[0]);
+                cards.add(new ModuleCard(name, String.valueOf(module[1]),
+                        createMenuIcon(name, INK, 44), () -> openModule(name)));
             }
 
-            content.add(welcomeBlock, BorderLayout.NORTH);
-            content.add(cards, BorderLayout.CENTER);
-
-            pageContainer.setBackground(Color.WHITE);
-            pageContainer.add(content, "Inicio");
-            root.add(leftMenu, BorderLayout.WEST);
-            root.add(pageContainer, BorderLayout.CENTER);
-            add(root);
+            page.add(heading, BorderLayout.NORTH);
+            page.add(cards, BorderLayout.CENTER);
+            return page;
         }
 
-        private Icon createMenuIcon(String name, Color color, int size) {
+        private void openModule(String name) {
+            JPanel module = modulePages.get(name);
+            if (module == null) {
+                switch (name) {
+                    case "Muebles":
+                        module = new MueblesPanel();
+                        break;
+                    case "Ventas":
+                        module = new VentasPanel();
+                        break;
+                    case "Gastos":
+                        module = new GastosPanel();
+                        break;
+                    case "Apartados":
+                        module = new ApartadosPanel();
+                        break;
+                    case "Impuestos":
+                        module = new ImpuestosPanel();
+                        break;
+                    case "Inventario":
+                        module = new InventarioPanel();
+                        break;
+                    case "Reportes":
+                        module = createReportsPanel();
+                        break;
+                    default:
+                        return;
+                }
+                modulePages.put(name, module);
+                pageContainer.add(module, name);
+            }
+            pageLayout.show(pageContainer, name);
+            updateSelectedNavigation(name);
+        }
+
+        private void updateSelectedNavigation(String selectedName) {
+            for (Map.Entry<String, NavButton> entry : navButtons.entrySet()) {
+                entry.getValue().setSelectedState(entry.getKey().equals(selectedName));
+            }
+        }
+
+        private JPanel createReportsPanel() {
+            JPanel panel = new JPanel(new BorderLayout(0, 8));
+            panel.setBackground(CONTENT_BG);
+            panel.setBorder(BorderFactory.createEmptyBorder(30, 32, 30, 32));
+            JLabel title = new JLabel("Reportes");
+            title.setFont(new Font("Arial", Font.BOLD, 26));
+            title.setForeground(INK);
+            JLabel message = new JLabel("Módulo de reportes en construcción");
+            message.setFont(new Font("Arial", Font.PLAIN, 15));
+            message.setForeground(MUTED_TEXT);
+            panel.add(title, BorderLayout.NORTH);
+            panel.add(message, BorderLayout.CENTER);
+            return panel;
+        }
+
+        private static Icon createHouseLogo(Color color, int size) {
             return new Icon() {
+                @Override
+                public void paintIcon(Component component, Graphics graphics, int x, int y) {
+                    Graphics2D g = (Graphics2D) graphics.create();
+                    g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                    g.translate(x, y);
+                    g.scale(size / 48.0, size / 48.0);
+                    g.setColor(color);
+                    g.setStroke(new BasicStroke(2.4f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+                    g.drawLine(4, 21, 24, 4);
+                    g.drawLine(24, 4, 44, 21);
+                    g.drawLine(9, 18, 9, 42);
+                    g.drawLine(39, 18, 39, 42);
+                    g.drawLine(9, 42, 39, 42);
+                    g.fillRoundRect(17, 26, 14, 8, 4, 4);
+                    g.drawRoundRect(14, 32, 20, 8, 3, 3);
+                    g.dispose();
+                }
+
+                @Override
+                public int getIconWidth() {
+                    return size;
+                }
+
+                @Override
+                public int getIconHeight() {
+                    return size;
+                }
+            };
+        }
+
+        private static Icon createMenuIcon(String name, Color color, int size) {
+            return new Icon() {
+                @Override
                 public void paintIcon(Component component, Graphics graphics, int x, int y) {
                     Graphics2D g = (Graphics2D) graphics.create();
                     g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
@@ -947,6 +955,12 @@ public class Project1 {
                         case "Usuario":
                             g.drawOval(17, 7, 14, 14);
                             g.drawArc(9, 23, 30, 23, 0, 180);
+                            break;
+                        case "Salir":
+                            g.drawRoundRect(8, 8, 19, 32, 3, 3);
+                            g.drawLine(24, 24, 41, 24);
+                            g.drawLine(35, 18, 41, 24);
+                            g.drawLine(35, 30, 41, 24);
                             break;
                         case "Muebles":
                             g.drawRoundRect(9, 20, 30, 15, 4, 4);
@@ -1032,72 +1046,114 @@ public class Project1 {
             };
         }
 
-        private void openModule(String name) {
-            if (name.equals("Inicio")) {
-                pageLayout.show(pageContainer, name);
-                updateSelectedNavigation(name);
-                return;
+        private static class NavButton extends JButton {
+            private boolean selected;
+            private boolean hover;
+
+            NavButton(String text, Icon icon) {
+                super(text, icon);
+                setOpaque(false);
+                setContentAreaFilled(false);
+                setBorderPainted(false);
+                setFocusPainted(false);
+                setHorizontalAlignment(SwingConstants.LEFT);
+                setIconTextGap(14);
+                setForeground(CREAM_TEXT);
+                setFont(new Font("Arial", Font.PLAIN, 15));
+                setBorder(BorderFactory.createEmptyBorder(0, 14, 0, 8));
+                setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+                addMouseListener(new java.awt.event.MouseAdapter() {
+                    @Override
+                    public void mouseEntered(java.awt.event.MouseEvent e) {
+                        hover = true;
+                        repaint();
+                    }
+
+                    @Override
+                    public void mouseExited(java.awt.event.MouseEvent e) {
+                        hover = false;
+                        repaint();
+                    }
+                });
             }
 
-            JPanel module = modulePages.get(name);
-            if (module == null) {
-                switch (name) {
-                    case "Muebles":
-                        module = new MueblesPanel();
-                        break;
-                    case "Ventas":
-                        module = new VentasPanel();
-                        break;
-                    case "Gastos":
-                        module = new GastosPanel();
-                        break;
-                    case "Apartados":
-                        module = new ApartadosPanel();
-                        break;
-                    case "Impuestos":
-                        module = new ImpuestosPanel();
-                        break;
-                    case "Inventario":
-                        module = new InventarioPanel();
-                        break;
-                    case "Reportes":
-                        module = createReportsPanel();
-                        break;
-                    default:
-                        return;
-                }
-                modulePages.put(name, module);
-                pageContainer.add(module, name);
+            void setSelectedState(boolean selected) {
+                this.selected = selected;
+                setFont(new Font("Arial", selected ? Font.BOLD : Font.PLAIN, 15));
+                repaint();
             }
-            pageLayout.show(pageContainer, name);
-            updateSelectedNavigation(name);
-        }
 
-        private void updateSelectedNavigation(String selectedName) {
-            activePage = selectedName;
-            for (Map.Entry<String, JButton> entry : navButtons.entrySet()) {
-                boolean selected = entry.getKey().equals(selectedName);
-                JButton button = entry.getValue();
-                button.setBackground(selected ? selectedBrown : sidebarBrown);
-                button.setFont(new Font("Arial", selected ? Font.BOLD : Font.PLAIN, 14));
-                button.setIcon(createMenuIcon(entry.getKey(), selected ? Color.WHITE : mutedCream, 25));
-                button.setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 8));
+            @Override
+            protected void paintComponent(Graphics graphics) {
+                Graphics2D g = (Graphics2D) graphics.create();
+                g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g.setColor(selected ? SIDEBAR_SELECTED : hover ? SIDEBAR_HOVER : SIDEBAR_BG);
+                g.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
+                g.dispose();
+                super.paintComponent(graphics);
             }
         }
 
-        private JPanel createReportsPanel() {
-            JPanel panel = new JPanel(new BorderLayout(0, 8));
-            panel.setBackground(Color.WHITE);
-            panel.setBorder(BorderFactory.createEmptyBorder(30, 32, 30, 32));
-            JLabel title = new JLabel("Reportes");
-            title.setFont(new Font("Arial", Font.BOLD, 26));
-            title.setForeground(new Color(42, 34, 29));
-            JLabel message = new JLabel("Módulo de reportes en construcción");
-            message.setFont(new Font("Arial", Font.PLAIN, 15));
-            message.setForeground(new Color(100, 93, 86));
-            panel.add(title, BorderLayout.NORTH);
-            panel.add(message, BorderLayout.CENTER);
-            return panel;
+        private static class ModuleCard extends JPanel {
+            private boolean hover;
+
+            ModuleCard(String name, String description, Icon icon, Runnable onClick) {
+                setOpaque(false);
+                setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
+                setBorder(BorderFactory.createEmptyBorder(16, 10, 16, 10));
+                setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+                JLabel iconLabel = new JLabel(icon);
+                iconLabel.setHorizontalAlignment(SwingConstants.CENTER);
+                iconLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+                JLabel title = new JLabel(name);
+                title.setHorizontalAlignment(SwingConstants.CENTER);
+                title.setFont(new Font("Arial", Font.BOLD, 17));
+                title.setForeground(INK);
+                title.setAlignmentX(Component.CENTER_ALIGNMENT);
+                JLabel descriptionLabel = new JLabel(description);
+                descriptionLabel.setHorizontalAlignment(SwingConstants.CENTER);
+                descriptionLabel.setFont(new Font("Arial", Font.PLAIN, 13));
+                descriptionLabel.setForeground(MUTED_TEXT);
+                descriptionLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+                add(Box.createVerticalGlue());
+                add(iconLabel);
+                add(Box.createVerticalStrut(12));
+                add(title);
+                add(Box.createVerticalStrut(5));
+                add(descriptionLabel);
+                add(Box.createVerticalGlue());
+
+                addMouseListener(new java.awt.event.MouseAdapter() {
+                    @Override
+                    public void mouseClicked(java.awt.event.MouseEvent e) {
+                        onClick.run();
+                    }
+
+                    @Override
+                    public void mouseEntered(java.awt.event.MouseEvent e) {
+                        hover = true;
+                        repaint();
+                    }
+
+                    @Override
+                    public void mouseExited(java.awt.event.MouseEvent e) {
+                        hover = false;
+                        repaint();
+                    }
+                });
+            }
+
+            @Override
+            protected void paintComponent(Graphics graphics) {
+                Graphics2D g = (Graphics2D) graphics.create();
+                g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g.setColor(hover ? CARD_HOVER : CARD_BG);
+                g.fillRoundRect(0, 0, getWidth(), getHeight(), 14, 14);
+                g.dispose();
+                super.paintComponent(graphics);
+            }
         }
     }
 
