@@ -605,7 +605,6 @@ public class Project1 {
                     try {
                         yearSelector.commitEdit();
                     } catch (java.text.ParseException ignored) {
-                        // el texto no es un año válido: se conserva el valor anterior
                     }
                 }
             });
@@ -625,8 +624,6 @@ public class Project1 {
             calendarPopup.add(calendar);
             calendarPopup.show(calendarButton, 0, calendarButton.getHeight());
         }
-
-        /** Toma el mes y el año elegidos y repinta sólo la rejilla de días. */
         private void aplicarSeleccion() {
             if (daysPanel == null) {
                 return;
@@ -642,8 +639,6 @@ public class Project1 {
             }
             refrescarDias();
         }
-
-        /** Redibuja los días sin cerrar ni reconstruir el calendario. */
         private void refrescarDias() {
             daysPanel.removeAll();
 
@@ -665,7 +660,6 @@ public class Project1 {
             try {
                 selectedDate = LocalDate.parse(dateInput.getText().trim(), DATE_FORMAT);
             } catch (RuntimeException ignored) {
-                // la fecha escrita no es válida: no se resalta ningún día
             }
 
             for (int day = 1; day <= displayedMonth.lengthOfMonth(); day++) {
@@ -741,7 +735,7 @@ public class Project1 {
 
         public MenuFrame(String username) {
             this.username = username;
-            setTitle("HOGARWOOD - Menú principal");
+            setTitle("HOLMWOOD - Menú principal");
             setSize(1060, 680);
             setLocationRelativeTo(null);
             setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -772,11 +766,11 @@ public class Project1 {
             JPanel brandText = new JPanel();
             brandText.setOpaque(false);
             brandText.setLayout(new BoxLayout(brandText, BoxLayout.Y_AXIS));
-            JLabel brandName = new JLabel("HOGARWOOD");
+            JLabel brandName = new JLabel("HOLMWOOD");
             brandName.setFont(new Font("Arial", Font.BOLD, 20));
             brandName.setForeground(CREAM_TEXT);
             brandName.setAlignmentX(Component.LEFT_ALIGNMENT);
-            JLabel brandSubtitle = new JLabel("M U E B L E R Í A");
+            JLabel brandSubtitle = new JLabel("----- M U E B L E R Í A -----");
             brandSubtitle.setFont(new Font("Arial", Font.BOLD, 8));
             brandSubtitle.setForeground(MUTED_CREAM);
             brandSubtitle.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -879,7 +873,7 @@ public class Project1 {
             heading.add(subtitle);
 
             Object[][] modules = {
-                    {"Muebles", "Tipos y catálogo"},
+                    {"Muebles", "Tipos, productos y precios"},
                     {"Ventas", "Registrar y consultar"},
                     {"Gastos", "Control de gastos"},
                     {"Apartados", "Gestionar apartados"},
@@ -1222,8 +1216,6 @@ public class Project1 {
     private static final Color TEXT_MUTED = new Color(122, 112, 102);
     private static final Color BTN_PRIMARY = new Color(75, 46, 30);
     private static final Color FIELD_BG = new Color(252, 250, 246);
-
-    /** Fuerza Arial como fuente por defecto de todos los componentes Swing. */
     private static void aplicarFuenteArial() {
         Font base = new Font("Arial", Font.PLAIN, 13);
         String[] claves = {
@@ -1320,8 +1312,6 @@ public class Project1 {
         pane.getViewport().setBackground(Color.WHITE);
         return pane;
     }
-
-    /** Encabezado de tarjeta: título a la izquierda y acciones opcionales a la derecha. */
     private static JPanel encabezado(String titulo, JComponent... acciones) {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setOpaque(false);
@@ -1336,8 +1326,6 @@ public class Project1 {
         }
         return panel;
     }
-
-    /** Botones "Editar" / "Eliminar" para una tabla (pasa null para omitir alguno). */
     private static JPanel accionesDeTabla(JTable tabla, Runnable editar, Runnable eliminar) {
         JPanel panel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
         panel.setOpaque(false);
@@ -1354,8 +1342,6 @@ public class Project1 {
         }
         return panel;
     }
-
-    /** Ejecuta la acción sólo si hay una fila seleccionada. */
     private static void conSeleccion(JTable tabla, Runnable accion) {
         if (tabla.getSelectedRow() < 0) {
             JOptionPane.showMessageDialog(tabla, "Selecciona una fila de la tabla primero.",
@@ -1364,24 +1350,18 @@ public class Project1 {
         }
         accion.run();
     }
-
-    /** Diálogo con botones "Cancelar" y "Guardar"; devuelve true si se pulsó Guardar. */
     private static boolean dialogoGuardar(Component padre, JComponent contenido, String titulo) {
         Object[] opciones = {"Cancelar", "Guardar"};
         int opcion = JOptionPane.showOptionDialog(padre, contenido, titulo,
                 JOptionPane.DEFAULT_OPTION, JOptionPane.PLAIN_MESSAGE, null, opciones, opciones[1]);
         return opcion == 1;
     }
-
-    /** Diálogo de confirmación con botones "Cancelar" y "Eliminar". */
     private static boolean dialogoEliminar(Component padre, String mensaje) {
         Object[] opciones = {"Cancelar", "Eliminar"};
         int opcion = JOptionPane.showOptionDialog(padre, mensaje, "Confirmar",
                 JOptionPane.DEFAULT_OPTION, JOptionPane.WARNING_MESSAGE, null, opciones, opciones[0]);
         return opcion == 1;
     }
-
-    /** Renderer que dibuja el estado como una "píldora" de color. */
     private static final class BadgeRenderer extends JLabel implements javax.swing.table.TableCellRenderer {
         private Color badgeBackground = Color.WHITE;
 
@@ -1421,11 +1401,11 @@ public class Project1 {
     //  Datos compartidos por todos los módulos
     // ==================================================================
     static final class Datos {
-        /** Catálogo de muebles: {tipo, descripción, precio} */
+        /** Catálogo de muebles: {tipo, producto, descripción, precio} */
         static final List<Object[]> MUEBLES = new ArrayList<>();
-        /** Existencias: producto -> stock */
+        /** Existencias por producto: producto -> stock */
         static final Map<String, Integer> STOCK = new LinkedHashMap<>();
-        /** Ventas registradas: {cliente, fecha, total} */
+        /** Ventas registradas: {cliente, fecha, total, líneas {producto, cantidad}} */
         static final List<Object[]> VENTAS = new ArrayList<>();
         /** Gastos registrados: {fecha, concepto, monto, descripción} */
         static final List<Object[]> GASTOS = new ArrayList<>();
@@ -1436,31 +1416,55 @@ public class Project1 {
         }
 
         static {
-            MUEBLES.add(new Object[]{"Sala", "Sofás, sillones, mesas", 4500.0});
-            MUEBLES.add(new Object[]{"Comedor", "Mesas, sillas, buffet, tocadores", 6100.0});
-            MUEBLES.add(new Object[]{"Recámara", "Camas, burós, tocadores", 5300.0});
-            MUEBLES.add(new Object[]{"Oficina", "Escritorios, sillas, libreros", 3700.0});
-            MUEBLES.add(new Object[]{"Infantil", "Muebles para niños", 2900.0});
+            MUEBLES.add(new Object[]{"Sala", "Sala Verona", "Sala de 3 piezas", 8500.0});
+            MUEBLES.add(new Object[]{"Sala", "Sala Oslo", "Sala modular de 3 piezas", 9800.0});
+            MUEBLES.add(new Object[]{"Comedor", "Comedor Roma", "Mesa con 6 sillas y buffet", 6100.0});
+            MUEBLES.add(new Object[]{"Recámara", "Recámara Kyoto", "Cama king con 2 burós", 5300.0});
+            MUEBLES.add(new Object[]{"Oficina", "Escritorio Nordic", "Escritorio con cajonera", 3700.0});
+            MUEBLES.add(new Object[]{"Infantil", "Cuna Luna", "Cuna convertible para bebé", 2900.0});
 
-            STOCK.put("Sala", 10);
-            STOCK.put("Comedor", 5);
-            STOCK.put("Recámara", 0);
-            STOCK.put("Oficina", 8);
-            STOCK.put("Infantil", 3);
+            STOCK.put("Sala Verona", 5);
+            STOCK.put("Sala Oslo", 4);
+            STOCK.put("Comedor Roma", 5);
+            STOCK.put("Recámara Kyoto", 0);
+            STOCK.put("Escritorio Nordic", 8);
+            STOCK.put("Cuna Luna", 3);
 
             APARTADOS.add(new Object[]{1, "Ruben", "$3,000.00", "2025-05-20"});
             APARTADOS.add(new Object[]{2, "Roberto", "$5,500.00", "2025-05-22"});
             APARTADOS.add(new Object[]{3, "Carolina", "$4,000.00", "2025-05-25"});
         }
 
-        /** Precio de catálogo del producto indicado (0 si no existe). */
-        static double precioDe(String producto) {
+        /** Devuelve el registro {tipo, producto, descripción, precio} o null si no existe. */
+        static Object[] buscarProducto(String producto) {
             for (Object[] mueble : MUEBLES) {
-                if (mueble[0].equals(producto)) {
-                    return (Double) mueble[2];
+                if (mueble[1].equals(producto)) {
+                    return mueble;
                 }
             }
-            return 0;
+            return null;
+        }
+
+        /** Indica si el producto ya está dado de alta en el catálogo. */
+        static boolean existeProducto(String producto) {
+            return buscarProducto(producto) != null;
+        }
+
+        /** Tipo (categoría) al que pertenece el producto ("" si no existe). */
+        static String tipoDe(String producto) {
+            Object[] mueble = buscarProducto(producto);
+            return mueble == null ? "" : String.valueOf(mueble[0]);
+        }
+
+        /** Precio de catálogo del producto indicado (0 si no existe). */
+        static double precioDe(String producto) {
+            Object[] mueble = buscarProducto(producto);
+            return mueble == null ? 0 : (Double) mueble[3];
+        }
+
+        /** Existencias actuales del producto (0 si no existe). */
+        static int stockDe(String producto) {
+            return STOCK.getOrDefault(producto, 0);
         }
 
         /** Da de alta el producto en el inventario si aún no existe. */
@@ -1468,6 +1472,28 @@ public class Project1 {
             if (producto != null && !producto.isBlank()) {
                 STOCK.putIfAbsent(producto, stockInicial);
             }
+        }
+
+        /** Renombra un producto conservando sus existencias. */
+        static void renombrarProducto(String anterior, String nuevo) {
+            if (anterior == null || nuevo == null || anterior.equals(nuevo)) {
+                return;
+            }
+            Integer stock = STOCK.remove(anterior);
+            if (stock != null) {
+                STOCK.put(nuevo, stock);
+            } else {
+                STOCK.putIfAbsent(nuevo, 0);
+            }
+        }
+
+        /** Elimina el producto del catálogo y del inventario. */
+        static void eliminarProducto(String producto) {
+            if (producto == null) {
+                return;
+            }
+            MUEBLES.removeIf(mueble -> mueble[1].equals(producto));
+            STOCK.remove(producto);
         }
 
         static int siguienteIdApartado() {
@@ -1496,13 +1522,9 @@ public class Project1 {
     interface ModuloActualizable {
         void refrescar();
     }
-
-    // ==================================================================
-    //  Módulos
-    // ==================================================================
     static class MueblesPanel extends JPanel implements ModuloActualizable {
         private final DefaultTableModel model = new DefaultTableModel(
-                new Object[]{"ID", "Tipo", "Descripción", "Precio"}, 0) {
+                new Object[]{"ID", "Tipo", "Producto", "Descripción", "Precio", "Stock"}, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
                 return false;
@@ -1510,8 +1532,10 @@ public class Project1 {
         };
         private final JTable table = new JTable(model);
         private final JTextField txtTipo = field();
+        private final JTextField txtProducto = field();
         private final JTextField txtDescripcion = field();
         private final JTextField txtPrecio = field();
+        private final JTextField txtStock = field();
 
         MueblesPanel() {
             setLayout(new BorderLayout());
@@ -1519,7 +1543,7 @@ public class Project1 {
             setBorder(BorderFactory.createEmptyBorder(20, 22, 20, 22));
 
             JPanel card = card(14);
-            card.add(encabezado("Tipos de muebles",
+            card.add(encabezado("Catálogo de muebles",
                     accionesDeTabla(table, this::editarMueble, this::eliminarMueble)), BorderLayout.NORTH);
             styleTable(table);
             card.add(scroll(table), BorderLayout.CENTER);
@@ -1530,34 +1554,57 @@ public class Project1 {
         }
 
         private JPanel construirFormulario() {
+            JPanel contenedor = new JPanel(new BorderLayout(14, 0));
+            contenedor.setOpaque(false);
+
             JPanel form = new JPanel(new GridBagLayout());
             form.setOpaque(false);
             GridBagConstraints gc = new GridBagConstraints();
-            gc.insets = new Insets(4, 0, 0, 10);
+            gc.insets = new Insets(4, 0, 4, 10);
             gc.fill = GridBagConstraints.HORIZONTAL;
-            gc.gridy = 0;
 
+            gc.gridy = 0;
             gc.gridx = 0; gc.weightx = 0; form.add(new JLabel("Tipo"), gc);
             gc.gridx = 1; gc.weightx = 1; form.add(txtTipo, gc);
-            gc.gridx = 2; gc.weightx = 0; form.add(new JLabel("Descripción"), gc);
-            gc.gridx = 3; gc.weightx = 2; form.add(txtDescripcion, gc);
-            gc.gridx = 4; gc.weightx = 0; form.add(new JLabel("Precio"), gc);
-            gc.gridx = 5; gc.weightx = 1; form.add(txtPrecio, gc);
+            gc.gridx = 2; gc.weightx = 0; form.add(new JLabel("Producto"), gc);
+            gc.gridx = 3; gc.weightx = 1; form.add(txtProducto, gc);
 
-            JButton btnAgregar = primaryButton("+ Agregar Tipo");
+            gc.gridy = 1;
+            gc.gridx = 0; gc.weightx = 0; form.add(new JLabel("Descripción"), gc);
+            gc.gridx = 1; gc.weightx = 2; gc.gridwidth = 3; form.add(txtDescripcion, gc);
+            gc.gridwidth = 1;
+
+            gc.gridy = 2;
+            gc.gridx = 0; gc.weightx = 0; form.add(new JLabel("Precio"), gc);
+            gc.gridx = 1; gc.weightx = 1; form.add(txtPrecio, gc);
+            gc.gridx = 2; gc.weightx = 0; form.add(new JLabel("Stock"), gc);
+            gc.gridx = 3; gc.weightx = 1; form.add(txtStock, gc);
+
+            JButton btnAgregar = primaryButton("+ Agregar producto");
             btnAgregar.addActionListener(e -> agregarMueble());
-            gc.gridx = 6; gc.weightx = 0; gc.insets = new Insets(4, 0, 0, 0);
-            form.add(btnAgregar, gc);
-            return form;
+            JPanel boton = new JPanel(new BorderLayout());
+            boton.setOpaque(false);
+            boton.add(btnAgregar, BorderLayout.NORTH);
+
+            contenedor.add(form, BorderLayout.CENTER);
+            contenedor.add(boton, BorderLayout.EAST);
+            return contenedor;
         }
 
         private void agregarMueble() {
             String tipo = txtTipo.getText().trim();
+            String producto = txtProducto.getText().trim();
             String descripcion = txtDescripcion.getText().trim();
             String textoPrecio = txtPrecio.getText().trim().replace("$", "").replace(",", "");
-            if (tipo.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Escribe el tipo de mueble.",
+            String textoStock = txtStock.getText().trim();
+            if (tipo.isEmpty() || producto.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Escribe el tipo y el nombre del producto.",
                         "Datos incompletos", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            if (Datos.existeProducto(producto)) {
+                JOptionPane.showMessageDialog(this, "Ya existe un producto llamado \"" + producto + "\".",
+                        "Producto duplicado", JOptionPane.WARNING_MESSAGE);
                 return;
             }
             double precio;
@@ -1571,45 +1618,75 @@ public class Project1 {
                         "Datos inválidos", JOptionPane.ERROR_MESSAGE);
                 return;
             }
-            Datos.MUEBLES.add(new Object[]{tipo, descripcion, precio});
-            Datos.asegurarProducto(tipo, 0);
+            int stock = 0;
+            if (!textoStock.isEmpty()) {
+                try {
+                    stock = Integer.parseInt(textoStock);
+                    if (stock < 0) {
+                        throw new NumberFormatException();
+                    }
+                } catch (NumberFormatException ex) {
+                    JOptionPane.showMessageDialog(this, "Ingresa un stock válido (0 o más).",
+                            "Datos inválidos", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+            }
+            Datos.MUEBLES.add(new Object[]{tipo, producto, descripcion, precio});
+            Datos.STOCK.put(producto, stock);
             txtTipo.setText("");
+            txtProducto.setText("");
             txtDescripcion.setText("");
             txtPrecio.setText("");
+            txtStock.setText("");
             refrescar();
         }
 
         private void editarMueble() {
             int fila = table.getSelectedRow();
             Object[] mueble = Datos.MUEBLES.get(fila);
+            String productoAnterior = String.valueOf(mueble[1]);
+
             JTextField tipo = field();
+            JTextField producto = field();
             JTextField descripcion = field();
             JTextField precio = field();
+            JTextField stock = field();
             tipo.setText(String.valueOf(mueble[0]));
-            descripcion.setText(String.valueOf(mueble[1]));
-            precio.setText(String.valueOf(mueble[2]));
+            producto.setText(productoAnterior);
+            descripcion.setText(String.valueOf(mueble[2]));
+            precio.setText(String.valueOf(mueble[3]));
+            stock.setText(String.valueOf(Datos.stockDe(productoAnterior)));
 
-            JPanel formulario = new JPanel(new GridLayout(3, 2, 10, 10));
+            JPanel formulario = new JPanel(new GridLayout(5, 2, 10, 10));
             formulario.add(new JLabel("Tipo"));
             formulario.add(tipo);
+            formulario.add(new JLabel("Producto"));
+            formulario.add(producto);
             formulario.add(new JLabel("Descripción"));
             formulario.add(descripcion);
             formulario.add(new JLabel("Precio"));
             formulario.add(precio);
-            if (!dialogoGuardar(this, formulario, "Editar tipo de mueble")) {
+            formulario.add(new JLabel("Stock"));
+            formulario.add(stock);
+            if (!dialogoGuardar(this, formulario, "Editar producto")) {
                 return;
             }
 
             String nuevoTipo = tipo.getText().trim();
-            String textoPrecio = precio.getText().trim().replace("$", "").replace(",", "");
-            if (nuevoTipo.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "El tipo no puede quedar vacío.",
+            String nuevoProducto = producto.getText().trim();
+            if (nuevoTipo.isEmpty() || nuevoProducto.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "El tipo y el producto no pueden quedar vacíos.",
                         "Datos incompletos", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            if (!productoAnterior.equals(nuevoProducto) && Datos.existeProducto(nuevoProducto)) {
+                JOptionPane.showMessageDialog(this, "Ya existe un producto llamado \"" + nuevoProducto + "\".",
+                        "Producto duplicado", JOptionPane.WARNING_MESSAGE);
                 return;
             }
             double nuevoPrecio;
             try {
-                nuevoPrecio = Double.parseDouble(textoPrecio);
+                nuevoPrecio = Double.parseDouble(precio.getText().trim().replace("$", "").replace(",", ""));
                 if (nuevoPrecio < 0) {
                     throw new NumberFormatException();
                 }
@@ -1618,24 +1695,33 @@ public class Project1 {
                         "Datos inválidos", JOptionPane.ERROR_MESSAGE);
                 return;
             }
-
-            String tipoAnterior = String.valueOf(mueble[0]);
-            if (!tipoAnterior.equals(nuevoTipo) && Datos.STOCK.containsKey(tipoAnterior)) {
-                Integer stock = Datos.STOCK.remove(tipoAnterior);
-                Datos.STOCK.put(nuevoTipo, stock == null ? 0 : stock);
+            int nuevoStock;
+            try {
+                nuevoStock = Integer.parseInt(stock.getText().trim());
+                if (nuevoStock < 0) {
+                    throw new NumberFormatException();
+                }
+            } catch (NumberFormatException ex) {
+                JOptionPane.showMessageDialog(this, "Ingresa un stock válido (0 o más).",
+                        "Datos inválidos", JOptionPane.ERROR_MESSAGE);
+                return;
             }
-            Datos.MUEBLES.set(fila, new Object[]{nuevoTipo, descripcion.getText().trim(), nuevoPrecio});
+
+            Datos.renombrarProducto(productoAnterior, nuevoProducto);
+            Datos.STOCK.put(nuevoProducto, nuevoStock);
+            Datos.MUEBLES.set(fila, new Object[]{nuevoTipo, nuevoProducto,
+                    descripcion.getText().trim(), nuevoPrecio});
             refrescar();
         }
 
         private void eliminarMueble() {
             int fila = table.getSelectedRow();
             Object[] mueble = Datos.MUEBLES.get(fila);
-            if (!dialogoEliminar(this, "¿Eliminar \"" + mueble[0] + "\" del catálogo y del inventario?")) {
+            String producto = String.valueOf(mueble[1]);
+            if (!dialogoEliminar(this, "¿Eliminar \"" + producto + "\" del catálogo y del inventario?")) {
                 return;
             }
-            Datos.STOCK.remove(String.valueOf(mueble[0]));
-            Datos.MUEBLES.remove(fila);
+            Datos.eliminarProducto(producto);
             refrescar();
         }
 
@@ -1644,7 +1730,9 @@ public class Project1 {
             model.setRowCount(0);
             int id = 1;
             for (Object[] mueble : Datos.MUEBLES) {
-                model.addRow(new Object[]{id++, mueble[0], mueble[1], dinero((Double) mueble[2])});
+                String producto = String.valueOf(mueble[1]);
+                model.addRow(new Object[]{id++, mueble[0], producto, mueble[2],
+                        dinero((Double) mueble[3]), Datos.stockDe(producto)});
             }
         }
     }
@@ -1656,6 +1744,7 @@ public class Project1 {
         private final JComboBox<String> cmbProducto = new JComboBox<>();
         private final JTextField txtCantidad = field();
         private final JLabel lblTotal = new JLabel("$0.00");
+        private final JLabel lblStockDisponible = new JLabel(" ");
         private final DefaultTableModel modeloDetalle = new DefaultTableModel(
                 new Object[]{"Producto", "Cantidad", "Precio", "Subtotal"}, 0) {
             @Override
@@ -1665,7 +1754,7 @@ public class Project1 {
         };
         private final JTable tablaDetalle = new JTable(modeloDetalle);
         private final DefaultTableModel modeloHistorial = new DefaultTableModel(
-                new Object[]{"Cliente", "Fecha", "Total"}, 0) {
+                new Object[]{"Cliente", "Fecha", "Productos", "Total"}, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
                 return false;
@@ -1723,14 +1812,18 @@ public class Project1 {
             ga.gridy = 0;
             ga.gridx = 0; ga.weightx = 0; agregar.add(new JLabel("Producto"), ga);
             ga.gridx = 1; ga.weightx = 2; agregar.add(cmbProducto, ga);
-            ga.gridx = 2; ga.weightx = 0; agregar.add(new JLabel("Cantidad"), ga);
+            lblStockDisponible.setFont(new Font("Arial", Font.BOLD, 13));
+            lblStockDisponible.setForeground(TEXT_MUTED);
+            ga.gridx = 2; ga.weightx = 0; agregar.add(lblStockDisponible, ga);
+            ga.gridx = 3; ga.weightx = 0; agregar.add(new JLabel("Cantidad"), ga);
             txtCantidad.setText("1");
             txtCantidad.setPreferredSize(new Dimension(80, 32));
-            ga.gridx = 3; ga.weightx = 1; agregar.add(txtCantidad, ga);
+            ga.gridx = 4; ga.weightx = 1; agregar.add(txtCantidad, ga);
             JButton btnAnadir = secondaryButton("+ Añadir");
             btnAnadir.addActionListener(e -> anadirDetalle());
-            ga.gridx = 4; ga.weightx = 0; ga.insets = new Insets(0, 0, 10, 0);
+            ga.gridx = 5; ga.weightx = 0; ga.insets = new Insets(0, 0, 10, 0);
             agregar.add(btnAnadir, ga);
+            cmbProducto.addActionListener(e -> actualizarStockDisponible());
 
             styleTable(tablaDetalle);
             contenedor.add(formulario);
@@ -1768,10 +1861,35 @@ public class Project1 {
                         "Datos inválidos", JOptionPane.ERROR_MESSAGE);
                 return;
             }
+            int disponible = Datos.stockDe(producto) - cantidadEnDetalle(producto);
+            if (cantidad > disponible) {
+                JOptionPane.showMessageDialog(this,
+                        "Stock insuficiente de \"" + producto + "\" (disponible: " + disponible + ").",
+                        "Sin existencias", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
             double precio = Datos.precioDe(producto);
             modeloDetalle.addRow(new Object[]{producto, cantidad, dinero(precio), dinero(precio * cantidad)});
             txtCantidad.setText("1");
             actualizarTotal();
+        }
+
+        /** Cantidad del producto que ya está agregada al detalle de la venta. */
+        private int cantidadEnDetalle(String producto) {
+            int total = 0;
+            for (int fila = 0; fila < modeloDetalle.getRowCount(); fila++) {
+                if (String.valueOf(modeloDetalle.getValueAt(fila, 0)).equals(producto)) {
+                    total += (Integer) modeloDetalle.getValueAt(fila, 1);
+                }
+            }
+            return total;
+        }
+
+        /** Refleja en pantalla las existencias del producto seleccionado. */
+        private void actualizarStockDisponible() {
+            String producto = (String) cmbProducto.getSelectedItem();
+            lblStockDisponible.setText(producto == null
+                    ? " " : "Stock disponible: " + Datos.stockDe(producto));
         }
 
         private double totalDetalle() {
@@ -1796,7 +1914,7 @@ public class Project1 {
             for (int fila = 0; fila < modeloDetalle.getRowCount(); fila++) {
                 String producto = String.valueOf(modeloDetalle.getValueAt(fila, 0));
                 int cantidad = (Integer) modeloDetalle.getValueAt(fila, 1);
-                int disponible = Datos.STOCK.getOrDefault(producto, 0);
+                int disponible = Datos.stockDe(producto);
                 if (cantidad > disponible) {
                     JOptionPane.showMessageDialog(this,
                             "Stock insuficiente de \"" + producto + "\" (disponible: " + disponible + ").",
@@ -1810,7 +1928,7 @@ public class Project1 {
                 String producto = String.valueOf(modeloDetalle.getValueAt(fila, 0));
                 int cantidad = (Integer) modeloDetalle.getValueAt(fila, 1);
                 total += Datos.precioDe(producto) * cantidad;
-                Datos.STOCK.put(producto, Datos.STOCK.getOrDefault(producto, 0) - cantidad);
+                Datos.STOCK.put(producto, Datos.stockDe(producto) - cantidad);
                 lineas.add(new Object[]{producto, cantidad});
             }
             Datos.VENTAS.add(new Object[]{cmbCliente.getSelectedItem(), campoFecha.getDate(), total, lineas});
@@ -1841,7 +1959,7 @@ public class Project1 {
             for (Object[] linea : (List<Object[]>) venta[3]) {
                 String producto = String.valueOf(linea[0]);
                 int cantidad = (Integer) linea[1];
-                Datos.STOCK.put(producto, Datos.STOCK.getOrDefault(producto, 0) + cantidad);
+                Datos.STOCK.put(producto, Datos.stockDe(producto) + cantidad);
             }
             Datos.VENTAS.remove(fila);
             refrescar();
@@ -1851,16 +1969,31 @@ public class Project1 {
         public void refrescar() {
             Object seleccionado = cmbProducto.getSelectedItem();
             cmbProducto.removeAllItems();
-            for (String producto : Datos.STOCK.keySet()) {
-                cmbProducto.addItem(producto);
+            for (Object[] mueble : Datos.MUEBLES) {
+                cmbProducto.addItem(String.valueOf(mueble[1]));
             }
             if (seleccionado != null) {
                 cmbProducto.setSelectedItem(seleccionado);
             }
+            actualizarStockDisponible();
             modeloHistorial.setRowCount(0);
             for (Object[] venta : Datos.VENTAS) {
-                modeloHistorial.addRow(new Object[]{venta[0], venta[1], dinero((Double) venta[2])});
+                modeloHistorial.addRow(new Object[]{venta[0], venta[1], resumenProductos(venta),
+                        dinero((Double) venta[2])});
             }
+        }
+
+        /** Detalle legible de los productos incluidos en una venta. */
+        @SuppressWarnings("unchecked")
+        private String resumenProductos(Object[] venta) {
+            StringBuilder resumen = new StringBuilder();
+            for (Object[] linea : (List<Object[]>) venta[3]) {
+                if (resumen.length() > 0) {
+                    resumen.append(", ");
+                }
+                resumen.append(linea[0]).append(" x").append(linea[1]);
+            }
+            return resumen.toString();
         }
     }
 
@@ -2239,7 +2372,7 @@ public class Project1 {
 
     static class InventarioPanel extends JPanel implements ModuloActualizable {
         private final DefaultTableModel modelo = new DefaultTableModel(
-                new Object[]{"Producto", "Stock", "Estado"}, 0) {
+                new Object[]{"Tipo", "Producto", "Stock", "Estado"}, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
                 return false;
@@ -2255,10 +2388,10 @@ public class Project1 {
             setBorder(BorderFactory.createEmptyBorder(20, 22, 20, 22));
 
             JPanel card = card(14);
-            card.add(encabezado("Inventario",
+            card.add(encabezado("Inventario de productos",
                     accionesDeTabla(tabla, null, this::eliminarProducto)), BorderLayout.NORTH);
             styleTable(tabla);
-            tabla.getColumnModel().getColumn(2).setCellRenderer(new BadgeRenderer());
+            tabla.getColumnModel().getColumn(3).setCellRenderer(new BadgeRenderer());
             card.add(scroll(tabla), BorderLayout.CENTER);
             card.add(construirAcciones(), BorderLayout.SOUTH);
 
@@ -2304,11 +2437,12 @@ public class Project1 {
 
         private void eliminarProducto() {
             int fila = tabla.getSelectedRow();
-            String producto = String.valueOf(modelo.getValueAt(fila, 0));
-            if (!dialogoEliminar(this, "¿Eliminar \"" + producto + "\" del inventario?")) {
+            String producto = String.valueOf(modelo.getValueAt(fila, 1));
+            if (!dialogoEliminar(this, "¿Eliminar \"" + producto + "\" del inventario y del catálogo?\n"
+                    + "Las ventas ya registradas no se modifican.")) {
                 return;
             }
-            Datos.STOCK.remove(producto);
+            Datos.eliminarProducto(producto);
             refrescar();
         }
 
@@ -2317,10 +2451,12 @@ public class Project1 {
             Object seleccionado = cmbProducto.getSelectedItem();
             cmbProducto.removeAllItems();
             modelo.setRowCount(0);
-            for (Map.Entry<String, Integer> entrada : Datos.STOCK.entrySet()) {
-                cmbProducto.addItem(entrada.getKey());
-                modelo.addRow(new Object[]{entrada.getKey(), entrada.getValue(),
-                        entrada.getValue() > 0 ? "Disponible" : "Agotado"});
+            for (Object[] mueble : Datos.MUEBLES) {
+                String producto = String.valueOf(mueble[1]);
+                int stock = Datos.stockDe(producto);
+                cmbProducto.addItem(producto);
+                modelo.addRow(new Object[]{mueble[0], producto, stock,
+                        stock > 0 ? "Disponible" : "Agotado"});
             }
             if (seleccionado != null) {
                 cmbProducto.setSelectedItem(seleccionado);
