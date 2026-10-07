@@ -1,3 +1,4 @@
+import javax.swing.JOptionPane;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -5,6 +6,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -38,7 +40,7 @@ final class PersistenciaCsv {
                 }
             }
         } catch (IOException ex) {
-            guardar();
+            avisarError("No se pudo leer datos_holmwood.csv", ex);
         }
     }
 
@@ -78,6 +80,15 @@ final class PersistenciaCsv {
     }
 
     static void guardar() {
+        Path backup = Paths.get("datos_holmwood.csv.bak");
+        try {
+            if (Files.isRegularFile(ARCHIVO)) {
+                Files.copy(ARCHIVO, backup, StandardCopyOption.REPLACE_EXISTING);
+            }
+        } catch (IOException ex) {
+            avisarError("No se pudo crear el respaldo CSV", ex);
+            return;
+        }
         try (BufferedWriter writer = Files.newBufferedWriter(ARCHIVO, StandardCharsets.UTF_8)) {
             writer.write("tipo,id,campo1,campo2,campo3,campo4,campo5,campo6,campo7,campo8");
             writer.newLine();
@@ -110,7 +121,16 @@ final class PersistenciaCsv {
                         String.valueOf(apartado[2]), String.valueOf(apartado[3]), String.valueOf(apartado[4]),
                         String.valueOf(apartado[5]), String.valueOf(apartado[6]), String.valueOf(apartado[7]));
             }
-        } catch (IOException ignored) {
+        } catch (IOException ex) {
+            avisarError("No se pudo guardar datos_holmwood.csv", ex);
+        }
+    }
+
+    private static void avisarError(String mensaje, IOException error) {
+        System.err.println(mensaje + ": " + error.getMessage());
+        if (!java.awt.GraphicsEnvironment.isHeadless()) {
+            JOptionPane.showMessageDialog(null, mensaje + ".\nRevisa permisos y espacio disponible.",
+                    "Error de datos", JOptionPane.ERROR_MESSAGE);
         }
     }
 

@@ -1,5 +1,6 @@
 # Archivos compilados de Java
 *.class
+datos_holmwood.csv.bak
 
 # Carpetas de salida de compilación
 /out/

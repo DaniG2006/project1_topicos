@@ -964,15 +964,20 @@ public class Project1 {
             title.setForeground(INK);
             header.add(title, BorderLayout.WEST);
 
-            JPanel summary = new JPanel(new GridLayout(1, 4, 12, 0));
+            JPanel summary = new JPanel(new GridLayout(1, 5, 12, 0));
             summary.setOpaque(false);
             double ventas = Datos.totalVentas();
             double gastos = totalGastos();
             double margen = ventas == 0 ? 0 : ((ventas - gastos) / ventas) * 100;
+            double valorInventario = 0;
+            for (Object[] mueble : Datos.MUEBLES) {
+                valorInventario += Datos.stockDe(String.valueOf(mueble[1])) * (Double) mueble[3];
+            }
             summary.add(createMetricTile("Ventas", dinero(ventas), new Color(37, 99, 67), ventas > 0));
             summary.add(createMetricTile("Gastos", dinero(gastos), new Color(124, 84, 51), false));
             summary.add(createMetricTile("Margen", String.format("%.1f%%", margen), new Color(66, 94, 126), margen >= 0));
             summary.add(createMetricTile("Apartados", Datos.APARTADOS.size() + " registros", new Color(138, 67, 67), false));
+            summary.add(createMetricTile("Inventario", dinero(valorInventario), new Color(72, 91, 117), valorInventario > 0));
 
             JPanel body = new JPanel(new BorderLayout(16, 16));
             body.setOpaque(false);
@@ -2368,12 +2373,22 @@ public class Project1 {
                         "Datos incompletos", JOptionPane.WARNING_MESSAGE);
                 return;
             }
+            if (!Datos.existeProducto(nombreProducto)) {
+                JOptionPane.showMessageDialog(this, "El producto no existe en el catálogo de muebles.",
+                        "Producto inválido", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            if (Datos.stockDe(nombreProducto) <= 0) {
+                JOptionPane.showMessageDialog(this, "El producto no tiene existencias disponibles.",
+                        "Sin existencias", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
             double valorMonto;
             double valorAnticipo;
             try {
                 valorMonto = Double.parseDouble(textoMonto);
                 valorAnticipo = Double.parseDouble(textoAnticipo.isEmpty() ? "0" : textoAnticipo);
-                if (valorMonto < 0 || valorAnticipo < 0 || valorAnticipo > valorMonto) {
+                if (valorMonto <= 0 || valorAnticipo < 0 || valorAnticipo > valorMonto) {
                     throw new NumberFormatException();
                 }
             } catch (NumberFormatException ex) {
@@ -2576,7 +2591,7 @@ public class Project1 {
             double porcentaje;
             try {
                 porcentaje = Double.parseDouble(txtIva.getText().trim()) / 100.0;
-                if (porcentaje < 0) {
+                if (porcentaje < 0 || porcentaje > 1) {
                     throw new NumberFormatException();
                 }
             } catch (NumberFormatException ex) {
