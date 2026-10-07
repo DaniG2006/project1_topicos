@@ -2565,9 +2565,18 @@ public class Project1 {
             detalleFinal.add(Box.createVerticalStrut(8));
             detalleFinal.add(nota);
 
-            contenido.add(resumen, BorderLayout.NORTH);
-            contenido.add(configuracion, BorderLayout.CENTER);
-            contenido.add(detalleFinal, BorderLayout.SOUTH);
+            JPanel mainColumn = new JPanel();
+            mainColumn.setLayout(new BoxLayout(mainColumn, BoxLayout.Y_AXIS));
+            mainColumn.add(resumen);
+            mainColumn.add(Box.createVerticalStrut(15)); 
+            mainColumn.add(configuracion);
+            mainColumn.add(Box.createVerticalStrut(15));
+            mainColumn.add(detalleFinal);
+            mainColumn.setBackground(Color.WHITE);
+            mainColumn.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(CARD_BORDER, 1),
+                    BorderFactory.createEmptyBorder(12, 12, 12, 12)));
+            contenido.add(mainColumn, BorderLayout.CENTER);
             return contenido;
         }
 
