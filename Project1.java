@@ -4,7 +4,13 @@ import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.text.DecimalFormat;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
@@ -13,15 +19,19 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.prefs.Preferences;
 
 public class Project1 {
 
     public static void main(String[] args) {
         aplicarFuenteArial();
+        PersistenciaCsv.cargar();
+        Runtime.getRuntime().addShutdownHook(new Thread(PersistenciaCsv::guardar));
         SwingUtilities.invokeLater(() -> new LoginFrame().setVisible(true));
     }
 
@@ -139,12 +149,18 @@ public class Project1 {
                 }
             };
             brandPlate.setOpaque(false);
-            brandPlate.setPreferredSize(new Dimension(420, 300));
+            brandPlate.setPreferredSize(new Dimension(420, 330));
             brandPlate.add(brandGroup, BorderLayout.CENTER);
 
             JPanel brandHost = new JPanel(new GridBagLayout());
             brandHost.setOpaque(false);
-            brandHost.add(brandPlate);
+            brandHost.setBorder(BorderFactory.createEmptyBorder(78, 12, 0, 8));
+            GridBagConstraints gbc = new GridBagConstraints();
+            gbc.gridx = 0;
+            gbc.gridy = 0;
+            gbc.anchor = GridBagConstraints.NORTH;
+            gbc.weighty = 1;
+            brandHost.add(brandPlate, gbc);
             leftCard.add(brandHost, BorderLayout.CENTER);
             left.add(leftCard, BorderLayout.CENTER);
 
@@ -153,7 +169,7 @@ public class Project1 {
 
             JPanel formContent = new JPanel(new GridBagLayout());
             formContent.setBackground(new Color(250, 247, 242));
-            formContent.setBorder(BorderFactory.createEmptyBorder(20, 32, 34, 18));
+            formContent.setBorder(BorderFactory.createEmptyBorder(10, 24, 28, 22));
 
             JPanel labelPanel = new JPanel();
             labelPanel.setOpaque(false);
@@ -324,11 +340,11 @@ public class Project1 {
             loginGroup.setOpaque(false);
             loginGroup.setLayout(new BoxLayout(loginGroup, BoxLayout.Y_AXIS));
             loginGroup.add(labelPanel);
-            loginGroup.add(Box.createVerticalStrut(32));
+            loginGroup.add(Box.createVerticalStrut(18));
             loginGroup.add(fields);
-            loginGroup.add(Box.createVerticalStrut(28));
+            loginGroup.add(Box.createVerticalStrut(18));
             loginGroup.add(btnIngresar);
-            loginGroup.add(Box.createVerticalStrut(16));
+            loginGroup.add(Box.createVerticalStrut(12));
             loginGroup.add(btnForgot);
 
             GridBagConstraints formConstraints = new GridBagConstraints();
@@ -748,13 +764,10 @@ public class Project1 {
             root.add(buildSidebar(), BorderLayout.WEST);
 
             pageContainer.setBackground(CONTENT_BG);
-            JPanel welcome = createWelcomePage();
-            modulePages.put("Inicio", welcome);
-            pageContainer.add(welcome, "Inicio");
             root.add(pageContainer, BorderLayout.CENTER);
 
             add(root);
-            updateSelectedNavigation("Inicio");
+            openModule("Inicio");
         }
 
         private JPanel buildHeader() {
@@ -796,8 +809,7 @@ public class Project1 {
             sidebar.setBorder(BorderFactory.createEmptyBorder(8, 8, 14, 8));
             sidebar.setLayout(new BoxLayout(sidebar, BoxLayout.Y_AXIS));
 
-            String[] items = {"Inicio", "Muebles", "Ventas", "Gastos",
-                    "Apartados", "Impuestos", "Inventario", "Reportes"};
+            String[] items = {"Inicio", "Muebles", "Inventario", "Ventas", "Apartados", "Impuestos", "Gastos", "Reportes"};
             for (String item : items) {
                 NavButton button = new NavButton(item, createMenuIcon(item, CREAM_TEXT, 22));
                 button.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -874,13 +886,13 @@ public class Project1 {
 
             Object[][] modules = {
                     {"Muebles", "Tipos, productos y precios"},
+                    {"Inventario", "Productos en stock"},
                     {"Ventas", "Registrar y consultar"},
-                    {"Gastos", "Control de gastos"},
                     {"Apartados", "Gestionar apartados"},
-                    {"Impuestos", "Cálculo de impuestos"},
-                    {"Inventario", "Productos en stock"}
+                        {"Impuestos", "Cálculo de impuestos"},
+                            {"Gastos", "Registrar gastos"}
             };
-            JPanel cards = new JPanel(new GridLayout(2, 3, 20, 20));
+                        JPanel cards = new JPanel(new GridLayout(2, 3, 20, 20));
             cards.setOpaque(false);
             for (Object[] module : modules) {
                 String name = String.valueOf(module[0]);
@@ -894,23 +906,33 @@ public class Project1 {
         }
 
         private void openModule(String name) {
-            JPanel module = modulePages.get(name);
-            if (module == null) {
-                switch (name) {
+            String moduleName = switch (name) {
+                case "Productos", "Muebles" -> "Muebles";
+                default -> name;
+            };
+            JPanel module = modulePages.get(moduleName);
+            if (module == null || "Reportes".equals(moduleName)) {
+                if (module != null) {
+                    pageContainer.remove(module);
+                }
+                switch (moduleName) {
+                    case "Inicio":
+                        module = createWelcomePage();
+                        break;
                     case "Muebles":
                         module = new MueblesPanel();
                         break;
                     case "Ventas":
                         module = new VentasPanel();
                         break;
-                    case "Gastos":
-                        module = new GastosPanel();
-                        break;
                     case "Apartados":
                         module = new ApartadosPanel();
                         break;
                     case "Impuestos":
                         module = new ImpuestosPanel();
+                        break;
+                    case "Gastos":
+                        module = new GastosPanel();
                         break;
                     case "Inventario":
                         module = new InventarioPanel();
@@ -921,14 +943,14 @@ public class Project1 {
                     default:
                         return;
                 }
-                modulePages.put(name, module);
-                pageContainer.add(module, name);
+                modulePages.put(moduleName, module);
+                pageContainer.add(module, moduleName);
             }
-            pageLayout.show(pageContainer, name);
+            pageLayout.show(pageContainer, moduleName);
             if (module instanceof ModuloActualizable actualizable) {
                 actualizable.refrescar();
             }
-            updateSelectedNavigation(name);
+            updateSelectedNavigation(moduleName);
         }
 
         private void updateSelectedNavigation(String selectedName) {
@@ -938,18 +960,181 @@ public class Project1 {
         }
 
         private JPanel createReportsPanel() {
-            JPanel panel = new JPanel(new BorderLayout(0, 8));
+            JPanel panel = new JPanel(new BorderLayout(0, 16));
             panel.setBackground(CONTENT_BG);
-            panel.setBorder(BorderFactory.createEmptyBorder(30, 32, 30, 32));
+            panel.setBorder(BorderFactory.createEmptyBorder(20, 22, 20, 22));
+
+            JPanel header = new JPanel(new BorderLayout());
+            header.setOpaque(false);
             JLabel title = new JLabel("Reportes");
-            title.setFont(new Font("Arial", Font.BOLD, 26));
+            title.setFont(new Font("Arial", Font.BOLD, 28));
             title.setForeground(INK);
-            JLabel message = new JLabel("Módulo de reportes en construcción");
-            message.setFont(new Font("Arial", Font.PLAIN, 15));
-            message.setForeground(MUTED_TEXT);
-            panel.add(title, BorderLayout.NORTH);
-            panel.add(message, BorderLayout.CENTER);
+            header.add(title, BorderLayout.WEST);
+
+            JPanel summary = new JPanel(new GridLayout(1, 4, 12, 0));
+            summary.setOpaque(false);
+            double ventas = Datos.totalVentas();
+            double gastos = totalGastos();
+            double margen = ventas == 0 ? 0 : ((ventas - gastos) / ventas) * 100;
+            summary.add(createMetricTile("Ventas", dinero(ventas), new Color(37, 99, 67), ventas > 0));
+            summary.add(createMetricTile("Gastos", dinero(gastos), new Color(124, 84, 51), false));
+            summary.add(createMetricTile("Margen", String.format("%.1f%%", margen), new Color(66, 94, 126), margen >= 0));
+            summary.add(createMetricTile("Apartados", Datos.APARTADOS.size() + " registros", new Color(138, 67, 67), false));
+
+            JPanel body = new JPanel(new BorderLayout(16, 16));
+            body.setOpaque(false);
+
+            JPanel left = new JPanel(new BorderLayout(0, 10));
+            left.setOpaque(false);
+            left.add(titledBlock("Resumen del movimiento", createMovementTable()), BorderLayout.CENTER);
+
+            JPanel right = new JPanel(new BorderLayout(0, 10));
+            right.setOpaque(false);
+            right.add(titledBlock("Top ventas", createTopSalesPanel()), BorderLayout.CENTER);
+
+            body.add(left, BorderLayout.CENTER);
+            body.add(right, BorderLayout.EAST);
+
+            panel.add(header, BorderLayout.NORTH);
+            panel.add(summary, BorderLayout.CENTER);
+            panel.add(body, BorderLayout.SOUTH);
             return panel;
+        }
+
+        private JPanel createMetricTile(String label, String value, Color accent, boolean positive) {
+            JPanel tile = new JPanel(new BorderLayout(0, 8));
+            tile.setOpaque(false);
+            tile.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(new Color(233, 226, 216), 1),
+                    BorderFactory.createEmptyBorder(14, 14, 14, 14)));
+            JLabel title = new JLabel(label);
+            title.setFont(new Font("Arial", Font.PLAIN, 12));
+            title.setForeground(MUTED_TEXT);
+            JLabel amount = new JLabel(value);
+            amount.setFont(new Font("Arial", Font.BOLD, 22));
+            amount.setForeground(positive ? new Color(41, 94, 64) : new Color(88, 74, 66));
+            JPanel badge = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+            badge.setOpaque(false);
+            JLabel dot = new JLabel("●");
+            dot.setForeground(accent);
+            dot.setFont(new Font("Arial", Font.BOLD, 13));
+            badge.add(dot);
+            tile.add(title, BorderLayout.NORTH);
+            tile.add(amount, BorderLayout.CENTER);
+            tile.add(badge, BorderLayout.SOUTH);
+            return tile;
+        }
+
+        private JPanel titledBlock(String titleText, JComponent content) {
+            JPanel block = new JPanel(new BorderLayout(0, 8));
+            block.setOpaque(false);
+            JLabel title = new JLabel(titleText);
+            title.setFont(new Font("Arial", Font.BOLD, 15));
+            title.setForeground(INK);
+            block.add(title, BorderLayout.NORTH);
+            block.add(content, BorderLayout.CENTER);
+            return block;
+        }
+
+        private JComponent createMovementTable() {
+            String[] cols = {"Concepto", "Cantidad", "Total"};
+            DefaultTableModel model = new DefaultTableModel(cols, 0) {
+                @Override
+                public boolean isCellEditable(int row, int column) {
+                    return false;
+                }
+            };
+            int unidadesVendidas = 0;
+            for (Object[] venta : Datos.VENTAS) {
+                @SuppressWarnings("unchecked")
+                List<Object[]> lineas = (List<Object[]>) venta[3];
+                for (Object[] linea : lineas) {
+                    unidadesVendidas += (Integer) linea[1];
+                }
+            }
+            model.addRow(new Object[]{"Ventas registradas", Datos.VENTAS.size(), dinero(Datos.totalVentas())});
+            model.addRow(new Object[]{"Unidades vendidas", unidadesVendidas, "-"});
+            model.addRow(new Object[]{"Gastos registrados", Datos.GASTOS.size(), dinero(totalGastos())});
+            model.addRow(new Object[]{"Apartados activos", Datos.APARTADOS.size(), "-"});
+            JTable table = new JTable(model);
+            styleTable(table);
+            table.setRowHeight(30);
+            return new JScrollPane(table);
+        }
+
+        private double totalGastos() {
+            double total = 0;
+            for (Object[] gasto : Datos.GASTOS) {
+                total += (Double) gasto[2];
+            }
+            return total;
+        }
+
+        private JComponent createTopSalesPanel() {
+            JPanel panel = new JPanel();
+            panel.setOpaque(false);
+            panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+            Map<String, Double> ventasPorProducto = new HashMap<>();
+            for (Object[] venta : Datos.VENTAS) {
+                @SuppressWarnings("unchecked")
+                List<Object[]> lineas = (List<Object[]>) venta[3];
+                for (Object[] linea : lineas) {
+                    String producto = String.valueOf(linea[0]);
+                    double importe = Datos.precioDe(producto) * (Integer) linea[1];
+                    ventasPorProducto.put(producto,
+                            ventasPorProducto.getOrDefault(producto, 0.0) + importe);
+                }
+            }
+            if (ventasPorProducto.isEmpty()) {
+                panel.add(new JLabel("Sin ventas registradas"));
+                return panel;
+            }
+
+            double importeMaximo = 0;
+            for (double importe : ventasPorProducto.values()) {
+                importeMaximo = Math.max(importeMaximo, importe);
+            }
+            Set<String> mostrados = new HashSet<>();
+            for (int i = 0; i < 3 && mostrados.size() < ventasPorProducto.size(); i++) {
+                String mejorProducto = null;
+                double mejorImporte = -1;
+                for (Map.Entry<String, Double> entry : ventasPorProducto.entrySet()) {
+                    if (!mostrados.contains(entry.getKey()) && entry.getValue() > mejorImporte) {
+                        mejorProducto = entry.getKey();
+                        mejorImporte = entry.getValue();
+                    }
+                }
+                if (mejorProducto == null) {
+                    break;
+                }
+                mostrados.add(mejorProducto);
+                int porcentaje = (int) Math.round(mejorImporte * 100 / importeMaximo);
+                panel.add(createSalesBar(mejorProducto, porcentaje, dinero(mejorImporte)));
+                if (mostrados.size() < Math.min(3, ventasPorProducto.size())) {
+                    panel.add(Box.createVerticalStrut(10));
+                }
+            }
+            return panel;
+        }
+
+        private JPanel createSalesBar(String name, int percent, String total) {
+            JPanel row = new JPanel(new BorderLayout(8, 4));
+            row.setOpaque(false);
+            JLabel label = new JLabel(name);
+            label.setFont(new Font("Arial", Font.PLAIN, 12));
+            label.setForeground(INK);
+            JProgressBar bar = new JProgressBar(0, 100);
+            bar.setValue(percent);
+            bar.setStringPainted(false);
+            bar.setForeground(new Color(75, 46, 30));
+            bar.setBackground(new Color(233, 226, 216));
+            JLabel value = new JLabel(total);
+            value.setFont(new Font("Arial", Font.BOLD, 12));
+            value.setForeground(TEXT_MUTED);
+            row.add(label, BorderLayout.NORTH);
+            row.add(bar, BorderLayout.CENTER);
+            row.add(value, BorderLayout.EAST);
+            return row;
         }
 
         private static Icon createHouseLogo(Color color, int size) {
@@ -1098,6 +1283,9 @@ public class Project1 {
         private static class NavButton extends JButton {
             private boolean selected;
             private boolean hover;
+            private Color background = SIDEBAR_BG;
+            private Color hoverColor = SIDEBAR_HOVER;
+            private Color selectedColor = SIDEBAR_SELECTED;
 
             NavButton(String text, Icon icon) {
                 super(text, icon);
@@ -1136,8 +1324,8 @@ public class Project1 {
             protected void paintComponent(Graphics graphics) {
                 Graphics2D g = (Graphics2D) graphics.create();
                 g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g.setColor(selected ? SIDEBAR_SELECTED : hover ? SIDEBAR_HOVER : SIDEBAR_BG);
-                g.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
+                g.setColor(selected ? selectedColor : hover ? hoverColor : background);
+                g.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 10, 10);
                 g.dispose();
                 super.paintComponent(graphics);
             }
@@ -1222,12 +1410,14 @@ public class Project1 {
                 "Label.font", "Button.font", "CheckBox.font", "RadioButton.font",
                 "TextField.font", "PasswordField.font", "TextArea.font", "ComboBox.font",
                 "List.font", "Table.font", "TableHeader.font", "Spinner.font",
-                "TitledBorder.font", "OptionPane.messageFont", "OptionPane.buttonFont",
+                "TitledBorder.font", "OptionPane.messageFont",
                 "Menu.font", "MenuItem.font", "ToolTip.font"
         };
         for (String clave : claves) {
             UIManager.put(clave, base);
         }
+        UIManager.put("Button.font", new Font("Dialog", Font.PLAIN, 13));
+        UIManager.put("OptionPane.buttonFont", new Font("Dialog", Font.PLAIN, 13));
     }
 
     /** Contenedor tipo tarjeta: fondo claro, esquinas redondeadas y borde fino. */
@@ -1417,7 +1607,7 @@ public class Project1 {
 
         static {
             MUEBLES.add(new Object[]{"Sala", "Sala Verona", "Sala de 3 piezas", 8500.0});
-            MUEBLES.add(new Object[]{"Sala", "Sala Oslo", "Sala modular de 3 piezas", 9800.0});
+            MUEBLES.add(new Object[]{"Sala", "Sala Oslo", "Sala de 3 piezas", 9800.0});
             MUEBLES.add(new Object[]{"Comedor", "Comedor Roma", "Mesa con 6 sillas y buffet", 6100.0});
             MUEBLES.add(new Object[]{"Recámara", "Recámara Kyoto", "Cama king con 2 burós", 5300.0});
             MUEBLES.add(new Object[]{"Oficina", "Escritorio Nordic", "Escritorio con cajonera", 3700.0});
@@ -1430,9 +1620,9 @@ public class Project1 {
             STOCK.put("Escritorio Nordic", 8);
             STOCK.put("Cuna Luna", 3);
 
-            APARTADOS.add(new Object[]{1, "Ruben", "$3,000.00", "2025-05-20"});
-            APARTADOS.add(new Object[]{2, "Roberto", "$5,500.00", "2025-05-22"});
-            APARTADOS.add(new Object[]{3, "Carolina", "$4,000.00", "2025-05-25"});
+            APARTADOS.add(new Object[]{1, "Ruben", "Sala Verona", "$3,000.00", "$1,200.00", "$1,800.00", "2026-09-30", "Pendiente"});
+            APARTADOS.add(new Object[]{2, "Roberto", "Comedor Roma", "$5,500.00", "$2,500.00", "$3,000.00", "2026-10-02", "Pagado"});
+            APARTADOS.add(new Object[]{3, "Carolina", "Recámara Kyoto", "$4,000.00", "$1,500.00", "$2,500.00", "2026-10-05", "Vigente"});
         }
 
         /** Devuelve el registro {tipo, producto, descripción, precio} o null si no existe. */
@@ -1494,6 +1684,7 @@ public class Project1 {
             }
             MUEBLES.removeIf(mueble -> mueble[1].equals(producto));
             STOCK.remove(producto);
+            PersistenciaCsv.guardar();
         }
 
         static int siguienteIdApartado() {
@@ -1503,13 +1694,160 @@ public class Project1 {
             }
             return maximo + 1;
         }
-
+        
+        /** Calcula el total de ventas. */
         static double totalVentas() {
             double total = 0;
             for (Object[] venta : VENTAS) {
                 total += (Double) venta[2];
             }
             return total;
+        }
+    }
+
+    static final class PersistenciaCsv {
+        private static final Path ARCHIVO = Paths.get("datos_holmwood.csv");
+
+        private PersistenciaCsv() {
+        }
+
+        static void cargar() {
+            if (!Files.isRegularFile(ARCHIVO)) {
+                guardar();
+                return;
+            }
+            try (BufferedReader reader = Files.newBufferedReader(ARCHIVO, StandardCharsets.UTF_8)) {
+                Datos.MUEBLES.clear();
+                Datos.STOCK.clear();
+                Datos.VENTAS.clear();
+                Datos.GASTOS.clear();
+                Datos.APARTADOS.clear();
+                reader.readLine();
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    List<String> values = parseLine(line);
+                    if (values.isEmpty()) {
+                        continue;
+                    }
+                    try {
+                        cargarRegistro(values);
+                    } catch (RuntimeException ignored) {
+                    }
+                }
+            } catch (IOException ex) {
+                guardar();
+            }
+        }
+
+        private static void cargarRegistro(List<String> values) {
+            String type = values.get(0);
+            switch (type) {
+                case "MUEBLE":
+                    String category = values.get(2);
+                    String product = values.get(3);
+                    double price = Double.parseDouble(values.get(5));
+                    int stock = Integer.parseInt(values.get(6));
+                    Datos.MUEBLES.add(new Object[]{category, product, values.get(4), price});
+                    Datos.STOCK.put(product, stock);
+                    break;
+                case "VENTA":
+                    List<Object[]> lines = new ArrayList<>();
+                    if (!values.get(5).isEmpty()) {
+                        for (String item : values.get(5).split("\\|", -1)) {
+                            String[] parts = item.split("~", -1);
+                            lines.add(new Object[]{parts[0], Integer.parseInt(parts[1])});
+                        }
+                    }
+                    Datos.VENTAS.add(new Object[]{values.get(2), values.get(3),
+                            Double.parseDouble(values.get(4)), lines});
+                    break;
+                case "GASTO":
+                    Datos.GASTOS.add(new Object[]{values.get(2), values.get(3),
+                            Double.parseDouble(values.get(4)), values.get(5)});
+                    break;
+                case "APARTADO":
+                    Datos.APARTADOS.add(new Object[]{Integer.parseInt(values.get(1)), values.get(2),
+                            values.get(3), values.get(4), values.get(5), values.get(6), values.get(7), values.get(8)});
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        static void guardar() {
+            try (BufferedWriter writer = Files.newBufferedWriter(ARCHIVO, StandardCharsets.UTF_8)) {
+                writer.write("tipo,id,campo1,campo2,campo3,campo4,campo5,campo6,campo7,campo8");
+                writer.newLine();
+                for (Object[] mueble : Datos.MUEBLES) {
+                    String product = String.valueOf(mueble[1]);
+                    write(writer, "MUEBLE", "", String.valueOf(mueble[0]), product,
+                            String.valueOf(mueble[2]), String.valueOf(mueble[3]),
+                            String.valueOf(Datos.stockDe(product)), "", "");
+                }
+                for (int i = 0; i < Datos.VENTAS.size(); i++) {
+                    Object[] venta = Datos.VENTAS.get(i);
+                    @SuppressWarnings("unchecked")
+                    List<Object[]> lines = (List<Object[]>) venta[3];
+                    StringBuilder serializedLines = new StringBuilder();
+                    for (Object[] line : lines) {
+                        if (serializedLines.length() > 0) {
+                            serializedLines.append('|');
+                        }
+                        serializedLines.append(line[0]).append('~').append(line[1]);
+                    }
+                    write(writer, "VENTA", String.valueOf(i + 1), String.valueOf(venta[0]),
+                            String.valueOf(venta[1]), String.valueOf(venta[2]), serializedLines.toString(), "", "", "");
+                }
+                for (Object[] gasto : Datos.GASTOS) {
+                    write(writer, "GASTO", "", String.valueOf(gasto[0]), String.valueOf(gasto[1]),
+                            String.valueOf(gasto[2]), String.valueOf(gasto[3]), "", "", "");
+                }
+                for (Object[] apartado : Datos.APARTADOS) {
+                    write(writer, "APARTADO", String.valueOf(apartado[0]), String.valueOf(apartado[1]),
+                            String.valueOf(apartado[2]), String.valueOf(apartado[3]), String.valueOf(apartado[4]),
+                            String.valueOf(apartado[5]), String.valueOf(apartado[6]), String.valueOf(apartado[7]));
+                }
+            } catch (IOException ignored) {
+            }
+        }
+
+        private static void write(BufferedWriter writer, String... values) throws IOException {
+            for (int i = 0; i < values.length; i++) {
+                if (i > 0) {
+                    writer.write(',');
+                }
+                writer.write(escape(values[i]));
+            }
+            writer.newLine();
+        }
+
+        private static String escape(String value) {
+            String safe = value == null ? "" : value;
+            return '"' + safe.replace("\"", "\"\"") + '"';
+        }
+
+        private static List<String> parseLine(String line) {
+            List<String> values = new ArrayList<>();
+            StringBuilder current = new StringBuilder();
+            boolean quoted = false;
+            for (int i = 0; i < line.length(); i++) {
+                char c = line.charAt(i);
+                if (c == '"') {
+                    if (quoted && i + 1 < line.length() && line.charAt(i + 1) == '"') {
+                        current.append('"');
+                        i++;
+                    } else {
+                        quoted = !quoted;
+                    }
+                } else if (c == ',' && !quoted) {
+                    values.add(current.toString());
+                    current.setLength(0);
+                } else {
+                    current.append(c);
+                }
+            }
+            values.add(current.toString());
+            return values;
         }
     }
 
@@ -1633,6 +1971,7 @@ public class Project1 {
             }
             Datos.MUEBLES.add(new Object[]{tipo, producto, descripcion, precio});
             Datos.STOCK.put(producto, stock);
+            PersistenciaCsv.guardar();
             txtTipo.setText("");
             txtProducto.setText("");
             txtDescripcion.setText("");
@@ -1711,6 +2050,7 @@ public class Project1 {
             Datos.STOCK.put(nuevoProducto, nuevoStock);
             Datos.MUEBLES.set(fila, new Object[]{nuevoTipo, nuevoProducto,
                     descripcion.getText().trim(), nuevoPrecio});
+                PersistenciaCsv.guardar();
             refrescar();
         }
 
@@ -1739,8 +2079,7 @@ public class Project1 {
 
     static class VentasPanel extends JPanel implements ModuloActualizable {
         private final DatePickerField campoFecha = new DatePickerField(LocalDate.now().toString());
-        private final JComboBox<String> cmbCliente = new JComboBox<>(
-                new String[]{"Ruben", "Roberto", "Carolina", "Público general"});
+        private final JTextField txtCliente = field();
         private final JComboBox<String> cmbProducto = new JComboBox<>();
         private final JTextField txtCantidad = field();
         private final JLabel lblTotal = new JLabel("$0.00");
@@ -1798,7 +2137,7 @@ public class Project1 {
             gc.gridx = 0; gc.weightx = 0; formulario.add(new JLabel("Fecha"), gc);
             gc.gridx = 1; gc.weightx = 1; formulario.add(campoFecha, gc);
             gc.gridx = 2; gc.weightx = 0; formulario.add(new JLabel("Cliente"), gc);
-            gc.gridx = 3; gc.weightx = 1; formulario.add(cmbCliente, gc);
+            gc.gridx = 3; gc.weightx = 1; formulario.add(txtCliente, gc);
             gc.gridx = 4; gc.weightx = 0; formulario.add(new JLabel("Total"), gc);
             lblTotal.setFont(new Font("Arial", Font.BOLD, 18));
             lblTotal.setForeground(TEXT_INK);
@@ -1911,6 +2250,13 @@ public class Project1 {
                         "Venta vacía", JOptionPane.WARNING_MESSAGE);
                 return;
             }
+            String cliente = txtCliente.getText().trim();
+            if (cliente.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Escribe el nombre del cliente.",
+                        "Datos incompletos", JOptionPane.WARNING_MESSAGE);
+                txtCliente.requestFocusInWindow();
+                return;
+            }
             for (int fila = 0; fila < modeloDetalle.getRowCount(); fila++) {
                 String producto = String.valueOf(modeloDetalle.getValueAt(fila, 0));
                 int cantidad = (Integer) modeloDetalle.getValueAt(fila, 1);
@@ -1931,7 +2277,8 @@ public class Project1 {
                 Datos.STOCK.put(producto, Datos.stockDe(producto) - cantidad);
                 lineas.add(new Object[]{producto, cantidad});
             }
-            Datos.VENTAS.add(new Object[]{cmbCliente.getSelectedItem(), campoFecha.getDate(), total, lineas});
+            Datos.VENTAS.add(new Object[]{cliente, campoFecha.getDate(), total, lineas});
+            PersistenciaCsv.guardar();
             JOptionPane.showMessageDialog(this, "Venta registrada: " + dinero(total));
             limpiarDetalle();
             refrescar();
@@ -1962,6 +2309,7 @@ public class Project1 {
                 Datos.STOCK.put(producto, Datos.stockDe(producto) + cantidad);
             }
             Datos.VENTAS.remove(fila);
+            PersistenciaCsv.guardar();
             refrescar();
         }
 
@@ -2087,6 +2435,7 @@ public class Project1 {
             }
             Datos.GASTOS.add(new Object[]{campoFecha.getDate(), cmbConcepto.getSelectedItem(),
                     monto, txtDescripcion.getText().trim()});
+                PersistenciaCsv.guardar();
             JOptionPane.showMessageDialog(this, "Gasto registrado: " + dinero(monto));
             limpiar();
             refrescar();
@@ -2137,6 +2486,7 @@ public class Project1 {
             }
             Datos.GASTOS.set(fila, new Object[]{fecha.getDate(), concepto.getSelectedItem(), valor,
                     descripcion.getText().trim()});
+                PersistenciaCsv.guardar();
             refrescar();
         }
 
@@ -2147,6 +2497,7 @@ public class Project1 {
                 return;
             }
             Datos.GASTOS.remove(fila);
+            PersistenciaCsv.guardar();
             refrescar();
         }
 
@@ -2161,13 +2512,16 @@ public class Project1 {
 
     static class ApartadosPanel extends JPanel implements ModuloActualizable {
         private final DefaultTableModel modelo = new DefaultTableModel(
-                new Object[]{"ID", "Cliente", "Monto", "Fecha"}, 0) {
+                new Object[]{"ID", "Cliente", "Producto", "Monto", "Anticipo", "Saldo", "Fecha", "Estado"}, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
                 return false;
             }
         };
         private final JTable tabla = new JTable(modelo);
+        private final JLabel lblTotalApartados = new JLabel("$0.00");
+        private final JLabel lblPendientes = new JLabel("$0.00");
+        private final JLabel lblClientesActivos = new JLabel("0");
 
         ApartadosPanel() {
             setLayout(new BorderLayout());
@@ -2177,53 +2531,130 @@ public class Project1 {
             JPanel card = card(14);
             card.add(encabezado("Apartados de clientes",
                     accionesDeTabla(tabla, this::editarApartado, this::eliminarApartado)), BorderLayout.NORTH);
-            styleTable(tabla);
-            card.add(scroll(tabla), BorderLayout.CENTER);
 
-            JPanel acciones = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
-            acciones.setOpaque(false);
-            JButton btnNuevo = primaryButton("+ Nuevo apartado");
-            btnNuevo.addActionListener(e -> nuevoApartado());
-            acciones.add(btnNuevo);
-            card.add(acciones, BorderLayout.SOUTH);
+            JPanel contenido = new JPanel(new BorderLayout(0, 12));
+            contenido.setOpaque(false);
+            contenido.add(construirResumen(), BorderLayout.NORTH);
+            styleTable(tabla);
+            contenido.add(scroll(tabla), BorderLayout.CENTER);
+            contenido.add(construirAcciones(), BorderLayout.SOUTH);
+            card.add(contenido, BorderLayout.CENTER);
 
             add(card, BorderLayout.CENTER);
             refrescar();
         }
 
+        private JPanel construirResumen() {
+            JPanel resumen = new JPanel(new GridLayout(1, 3, 12, 0));
+            resumen.setOpaque(false);
+            resumen.add(metricCard("Total apartados", lblTotalApartados));
+            resumen.add(metricCard("Pendientes", lblPendientes));
+            resumen.add(metricCard("Clientes activos", lblClientesActivos));
+            return resumen;
+        }
+
+        private JPanel metricCard(String titulo, JComponent valor) {
+            JPanel tile = new JPanel(new BorderLayout(0, 6));
+            tile.setOpaque(false);
+            tile.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(CARD_BORDER, 1),
+                    BorderFactory.createEmptyBorder(12, 12, 12, 12)));
+            JLabel label = new JLabel(titulo);
+            label.setFont(new Font("Arial", Font.PLAIN, 12));
+            label.setForeground(TEXT_MUTED);
+            valor.setFont(new Font("Arial", Font.BOLD, 20));
+            ((JLabel) valor).setForeground(TEXT_INK);
+            tile.add(label, BorderLayout.NORTH);
+            tile.add(valor, BorderLayout.CENTER);
+            return tile;
+        }
+
+        private JPanel construirAcciones() {
+            JPanel acciones = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+            acciones.setOpaque(false);
+            JButton btnNuevo = primaryButton("+ Nuevo apartado");
+            btnNuevo.addActionListener(e -> nuevoApartado());
+            acciones.add(btnNuevo);
+            return acciones;
+        }
+
+        private JPanel crearFormularioApartado(String titulo, JTextField cliente, JTextField producto, JTextField monto,
+                                              JTextField anticipo, JComboBox<String> estado, DatePickerField fecha) {
+            JPanel formulario = new JPanel(new GridBagLayout());
+            formulario.setOpaque(false);
+            GridBagConstraints gc = new GridBagConstraints();
+            gc.insets = new Insets(10, 12, 10, 12);
+            gc.fill = GridBagConstraints.HORIZONTAL;
+            gc.weightx = 1;
+
+            int fila = 0;
+            gc.gridx = 0; gc.gridy = fila; gc.weightx = 0.15; formulario.add(new JLabel("Cliente"), gc);
+            gc.gridx = 1; gc.weightx = 0.85; formulario.add(cliente, gc);
+
+            fila++;
+            gc.gridx = 0; gc.gridy = fila; gc.weightx = 0.15; formulario.add(new JLabel("Producto"), gc);
+            gc.gridx = 1; gc.weightx = 0.85; formulario.add(producto, gc);
+
+            fila++;
+            gc.gridx = 0; gc.gridy = fila; gc.weightx = 0.15; formulario.add(new JLabel("Monto"), gc);
+            gc.gridx = 1; gc.weightx = 0.85; formulario.add(monto, gc);
+
+            fila++;
+            gc.gridx = 0; gc.gridy = fila; gc.weightx = 0.15; formulario.add(new JLabel("Anticipo"), gc);
+            gc.gridx = 1; gc.weightx = 0.85; formulario.add(anticipo, gc);
+
+            fila++;
+            gc.gridx = 0; gc.gridy = fila; gc.weightx = 0.15; formulario.add(new JLabel("Estado"), gc);
+            gc.gridx = 1; gc.weightx = 0.85; formulario.add(estado, gc);
+
+            fila++;
+            gc.gridx = 0; gc.gridy = fila; gc.weightx = 0.15; formulario.add(new JLabel("Fecha"), gc);
+            gc.gridx = 1; gc.weightx = 0.85; formulario.add(fecha, gc);
+
+            formulario.setBorder(BorderFactory.createEmptyBorder(12, 10, 10, 10));
+            return formulario;
+        }
+
         private void nuevoApartado() {
             JTextField cliente = field();
+            JTextField producto = field();
             JTextField monto = field();
+            JTextField anticipo = field();
             DatePickerField fecha = new DatePickerField(LocalDate.now().toString());
-            JPanel formulario = new JPanel(new GridLayout(3, 2, 10, 10));
-            formulario.add(new JLabel("Cliente"));
-            formulario.add(cliente);
-            formulario.add(new JLabel("Monto"));
-            formulario.add(monto);
-            formulario.add(new JLabel("Fecha"));
-            formulario.add(fecha);
+            JComboBox<String> estado = new JComboBox<>(new String[]{"Pendiente", "Vigente", "Pagado"});
+            estado.setPreferredSize(new Dimension(180, 32));
+
+            JPanel formulario = crearFormularioApartado("Nuevo apartado", cliente, producto, monto, anticipo, estado, fecha);
             if (!dialogoGuardar(this, formulario, "Nuevo apartado")) {
                 return;
             }
+
             String nombre = cliente.getText().trim();
+            String nombreProducto = producto.getText().trim();
             String textoMonto = monto.getText().trim().replace("$", "").replace(",", "");
-            if (nombre.isEmpty() || textoMonto.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Completa cliente y monto.",
+            String textoAnticipo = anticipo.getText().trim().replace("$", "").replace(",", "");
+            if (nombre.isEmpty() || nombreProducto.isEmpty() || textoMonto.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Completa cliente, producto y monto.",
                         "Datos incompletos", JOptionPane.WARNING_MESSAGE);
                 return;
             }
-            double valor;
+            double valorMonto;
+            double valorAnticipo;
             try {
-                valor = Double.parseDouble(textoMonto);
-                if (valor < 0) {
+                valorMonto = Double.parseDouble(textoMonto);
+                valorAnticipo = Double.parseDouble(textoAnticipo.isEmpty() ? "0" : textoAnticipo);
+                if (valorMonto < 0 || valorAnticipo < 0 || valorAnticipo > valorMonto) {
                     throw new NumberFormatException();
                 }
             } catch (NumberFormatException ex) {
-                JOptionPane.showMessageDialog(this, "Ingresa un monto válido.",
+                JOptionPane.showMessageDialog(this, "Revisa monto y anticipo.",
                         "Datos inválidos", JOptionPane.ERROR_MESSAGE);
                 return;
             }
-            Datos.APARTADOS.add(new Object[]{Datos.siguienteIdApartado(), nombre, dinero(valor), fecha.getDate()});
+            double saldo = valorMonto - valorAnticipo;
+            Datos.APARTADOS.add(new Object[]{Datos.siguienteIdApartado(), nombre, nombreProducto,
+                    dinero(valorMonto), dinero(valorAnticipo), dinero(saldo), fecha.getDate(), estado.getSelectedItem()});
+                PersistenciaCsv.guardar();
             refrescar();
         }
 
@@ -2232,34 +2663,40 @@ public class Project1 {
             Object[] apartado = Datos.APARTADOS.get(fila);
             JTextField cliente = field();
             cliente.setText(String.valueOf(apartado[1]));
+            JTextField producto = field();
+            producto.setText(String.valueOf(apartado[2]));
             JTextField monto = field();
-            monto.setText(String.valueOf(apartado[2]));
-            DatePickerField fecha = new DatePickerField(String.valueOf(apartado[3]));
+            monto.setText(String.valueOf(apartado[3]));
+            JTextField anticipo = field();
+            anticipo.setText(String.valueOf(apartado[4]));
+            DatePickerField fecha = new DatePickerField(String.valueOf(apartado[6]));
+            JComboBox<String> estado = new JComboBox<>(new String[]{"Pendiente", "Vigente", "Pagado"});
+            estado.setSelectedItem(String.valueOf(apartado[7]));
 
-            JPanel formulario = new JPanel(new GridLayout(3, 2, 10, 10));
-            formulario.add(new JLabel("Cliente"));
-            formulario.add(cliente);
-            formulario.add(new JLabel("Monto"));
-            formulario.add(monto);
-            formulario.add(new JLabel("Fecha"));
-            formulario.add(fecha);
+            JPanel formulario = crearFormularioApartado("Editar apartado", cliente, producto, monto, anticipo, estado, fecha);
             if (!dialogoGuardar(this, formulario, "Editar apartado")) {
                 return;
             }
 
             String nombre = cliente.getText().trim();
-            double valor;
+            String nombreProducto = producto.getText().trim();
+            double valorMonto;
+            double valorAnticipo;
             try {
-                valor = Double.parseDouble(monto.getText().trim().replace("$", "").replace(",", ""));
-                if (valor < 0 || nombre.isEmpty()) {
+                valorMonto = Double.parseDouble(monto.getText().trim().replace("$", "").replace(",", ""));
+                valorAnticipo = Double.parseDouble(anticipo.getText().trim().replace("$", "").replace(",", ""));
+                if (valorMonto < 0 || valorAnticipo < 0 || valorAnticipo > valorMonto || nombre.isEmpty() || nombreProducto.isEmpty()) {
                     throw new NumberFormatException();
                 }
             } catch (NumberFormatException ex) {
-                JOptionPane.showMessageDialog(this, "Revisa el cliente y el monto.",
+                JOptionPane.showMessageDialog(this, "Revisa cliente, producto, monto y anticipo.",
                         "Datos inválidos", JOptionPane.ERROR_MESSAGE);
                 return;
             }
-            Datos.APARTADOS.set(fila, new Object[]{apartado[0], nombre, dinero(valor), fecha.getDate()});
+            double saldo = valorMonto - valorAnticipo;
+            Datos.APARTADOS.set(fila, new Object[]{apartado[0], nombre, nombreProducto,
+                    dinero(valorMonto), dinero(valorAnticipo), dinero(saldo), fecha.getDate(), estado.getSelectedItem()});
+                PersistenciaCsv.guardar();
             refrescar();
         }
 
@@ -2270,14 +2707,42 @@ public class Project1 {
                 return;
             }
             Datos.APARTADOS.remove(fila);
+            PersistenciaCsv.guardar();
             refrescar();
         }
 
         @Override
         public void refrescar() {
             modelo.setRowCount(0);
+            double total = 0;
+            double pendientes = 0;
+            Set<String> clientes = new HashSet<>();
             for (Object[] apartado : Datos.APARTADOS) {
-                modelo.addRow(apartado);
+                String cliente = String.valueOf(apartado[1]);
+                String producto = String.valueOf(apartado[2]);
+                double monto = parseValor(apartado[3]);
+                double anticipo = parseValor(apartado[4]);
+                double saldo = parseValor(apartado[5]);
+                String estado = String.valueOf(apartado[7]);
+                clientes.add(cliente);
+                total += monto;
+                if (!"Pagado".equals(estado)) {
+                    pendientes += saldo;
+                }
+                modelo.addRow(new Object[]{apartado[0], cliente, producto, dinero(monto), dinero(anticipo), dinero(saldo), apartado[6], estado});
+            }
+            lblTotalApartados.setText(dinero(total));
+            lblPendientes.setText(dinero(pendientes));
+            lblClientesActivos.setText(String.valueOf(clientes.size()));
+        }
+
+        private double parseValor(Object value) {
+            try {
+                String texto = String.valueOf(value).replace("$", "").replace(",", "").trim();
+                if (texto.isEmpty()) return 0;
+                return Double.parseDouble(texto);
+            } catch (NumberFormatException ex) {
+                return 0;
             }
         }
     }
@@ -2287,6 +2752,8 @@ public class Project1 {
         private final JLabel lblSubtotal = new JLabel("$0.00");
         private final JLabel lblIva = new JLabel("$0.00");
         private final JLabel lblTotal = new JLabel("$0.00");
+        private final JLabel lblVentas = new JLabel("0");
+        private final JLabel lblPorcentaje = new JLabel("16%");
 
         ImpuestosPanel() {
             setLayout(new BorderLayout());
@@ -2302,48 +2769,77 @@ public class Project1 {
         }
 
         private JPanel construirContenido() {
-            JPanel contenido = new JPanel();
+            JPanel contenido = new JPanel(new BorderLayout(0, 12));
             contenido.setOpaque(false);
-            contenido.setLayout(new BoxLayout(contenido, BoxLayout.Y_AXIS));
+            contenido.setBorder(BorderFactory.createEmptyBorder(2, 0, 0, 0));
 
-            JPanel iva = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
-            iva.setOpaque(false);
-            iva.add(new JLabel("IVA (%)"));
+            JPanel resumen = new JPanel(new GridLayout(1, 4, 12, 0));
+            resumen.setOpaque(false);
+            resumen.add(metricCard("Subtotal", lblSubtotal));
+            resumen.add(metricCard("IVA", lblIva));
+            resumen.add(metricCard("Total", lblTotal));
+            resumen.add(metricCard("Ventas", lblVentas));
+
+            JPanel configuracion = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+            configuracion.setOpaque(false);
+            JLabel etiqueta = new JLabel("Tasa de IVA");
+            etiqueta.setForeground(TEXT_INK);
+            etiqueta.setFont(new Font("Arial", Font.PLAIN, 13));
             txtIva.setText("16");
-            txtIva.setPreferredSize(new Dimension(80, 32));
-            iva.add(txtIva);
-
-            JPanel filas = new JPanel(new GridLayout(3, 2, 8, 8));
-            filas.setOpaque(false);
-            filas.add(new JLabel("Subtotal (ventas)"));
-            filas.add(lblSubtotal);
-            filas.add(new JLabel("IVA"));
-            filas.add(lblIva);
-            filas.add(new JLabel("Total"));
-            filas.add(lblTotal);
-            for (JLabel etiqueta : new JLabel[]{lblSubtotal, lblIva, lblTotal}) {
-                etiqueta.setFont(new Font("Arial", Font.BOLD, 18));
-                etiqueta.setForeground(TEXT_INK);
-            }
-
+            txtIva.setPreferredSize(new Dimension(90, 32));
             JButton btnCalcular = primaryButton("Calcular");
             btnCalcular.addActionListener(e -> calcular());
-            JPanel acciones = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
-            acciones.setOpaque(false);
-            acciones.add(btnCalcular);
+            configuracion.add(etiqueta);
+            configuracion.add(txtIva);
+            configuracion.add(new JLabel("%"));
+            configuracion.add(btnCalcular);
 
-            JLabel nota = new JLabel("*El cálculo se realiza automáticamente a partir de las ventas registradas.");
+            JPanel detalle = new JPanel(new GridLayout(3, 2, 10, 10));
+            detalle.setOpaque(false);
+            detalle.add(new JLabel("Tasa aplicada"));
+            detalle.add(lblPorcentaje);
+            detalle.add(new JLabel("Base imponible"));
+            detalle.add(lblSubtotal);
+            detalle.add(new JLabel("Total con IVA"));
+            detalle.add(lblTotal);
+            for (Component c : detalle.getComponents()) {
+                if (c instanceof JLabel) {
+                    ((JLabel) c).setFont(new Font("Arial", Font.BOLD, 15));
+                    ((JLabel) c).setForeground(TEXT_INK);
+                }
+            }
+
+            JLabel nota = new JLabel("*El cálculo se actualiza con las ventas registradas en la sucursal.");
             nota.setFont(new Font("Arial", Font.ITALIC, 12));
             nota.setForeground(TEXT_MUTED);
 
-            contenido.add(iva);
-            contenido.add(Box.createVerticalStrut(12));
-            contenido.add(filas);
-            contenido.add(Box.createVerticalStrut(14));
-            contenido.add(acciones);
-            contenido.add(Box.createVerticalStrut(14));
-            contenido.add(nota);
+            JPanel detalleFinal = new JPanel();
+            detalleFinal.setOpaque(false);
+            detalleFinal.setLayout(new BoxLayout(detalleFinal, BoxLayout.Y_AXIS));
+            detalleFinal.add(detalle);
+            detalleFinal.add(Box.createVerticalStrut(8));
+            detalleFinal.add(nota);
+
+            contenido.add(resumen, BorderLayout.NORTH);
+            contenido.add(configuracion, BorderLayout.CENTER);
+            contenido.add(detalleFinal, BorderLayout.SOUTH);
             return contenido;
+        }
+
+        private JPanel metricCard(String titulo, JComponent valor) {
+            JPanel tile = new JPanel(new BorderLayout(0, 6));
+            tile.setOpaque(false);
+            tile.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(CARD_BORDER, 1),
+                    BorderFactory.createEmptyBorder(12, 12, 12, 12)));
+            JLabel label = new JLabel(titulo);
+            label.setFont(new Font("Arial", Font.PLAIN, 12));
+            label.setForeground(TEXT_MUTED);
+            valor.setFont(new Font("Arial", Font.BOLD, 18));
+            ((JLabel) valor).setForeground(TEXT_INK);
+            tile.add(label, BorderLayout.NORTH);
+            tile.add(valor, BorderLayout.CENTER);
+            return tile;
         }
 
         private void calcular() {
@@ -2360,8 +2856,11 @@ public class Project1 {
             }
             double subtotal = Datos.totalVentas();
             lblSubtotal.setText(dinero(subtotal));
-            lblIva.setText(dinero(subtotal * porcentaje));
-            lblTotal.setText(dinero(subtotal * (1 + porcentaje)));
+            double iva = subtotal * porcentaje;
+            lblIva.setText(dinero(iva));
+            lblTotal.setText(dinero(subtotal + iva));
+            lblVentas.setText(dinero(subtotal));
+            lblPorcentaje.setText(String.format("%.0f%%", porcentaje * 100));
         }
 
         @Override
@@ -2381,6 +2880,10 @@ public class Project1 {
         private final JTable tabla = new JTable(modelo);
         private final JComboBox<String> cmbProducto = new JComboBox<>();
         private final JTextField txtStock = field();
+        private final JLabel lblTotalPiezas = new JLabel("0");
+        private final JLabel lblDisponibles = new JLabel("0");
+        private final JLabel lblBajoStock = new JLabel("0");
+        private final JLabel lblValorInventario = new JLabel("$0.00");
 
         InventarioPanel() {
             setLayout(new BorderLayout());
@@ -2390,23 +2893,54 @@ public class Project1 {
             JPanel card = card(14);
             card.add(encabezado("Inventario de productos",
                     accionesDeTabla(tabla, null, this::eliminarProducto)), BorderLayout.NORTH);
+
+            JPanel contenido = new JPanel(new BorderLayout(0, 12));
+            contenido.setOpaque(false);
+            contenido.add(construirResumen(), BorderLayout.NORTH);
             styleTable(tabla);
             tabla.getColumnModel().getColumn(3).setCellRenderer(new BadgeRenderer());
-            card.add(scroll(tabla), BorderLayout.CENTER);
-            card.add(construirAcciones(), BorderLayout.SOUTH);
+            contenido.add(scroll(tabla), BorderLayout.CENTER);
+            contenido.add(construirAcciones(), BorderLayout.SOUTH);
+            card.add(contenido, BorderLayout.CENTER);
 
             add(card, BorderLayout.CENTER);
             refrescar();
+        }
+
+        private JPanel construirResumen() {
+            JPanel resumen = new JPanel(new GridLayout(1, 4, 12, 0));
+            resumen.setOpaque(false);
+            resumen.add(metricCard("Total piezas", lblTotalPiezas));
+            resumen.add(metricCard("Disponibles", lblDisponibles));
+            resumen.add(metricCard("Bajo stock", lblBajoStock));
+            resumen.add(metricCard("Valor estimado", lblValorInventario));
+            return resumen;
+        }
+
+        private JPanel metricCard(String titulo, JComponent valor) {
+            JPanel tile = new JPanel(new BorderLayout(0, 6));
+            tile.setOpaque(false);
+            tile.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(CARD_BORDER, 1),
+                    BorderFactory.createEmptyBorder(12, 12, 12, 12)));
+            JLabel label = new JLabel(titulo);
+            label.setFont(new Font("Arial", Font.PLAIN, 12));
+            label.setForeground(TEXT_MUTED);
+            valor.setFont(new Font("Arial", Font.BOLD, 18));
+            ((JLabel) valor).setForeground(TEXT_INK);
+            tile.add(label, BorderLayout.NORTH);
+            tile.add(valor, BorderLayout.CENTER);
+            return tile;
         }
 
         private JPanel construirAcciones() {
             JPanel acciones = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
             acciones.setOpaque(false);
             acciones.add(new JLabel("Producto"));
-            cmbProducto.setPreferredSize(new Dimension(150, 32));
+            cmbProducto.setPreferredSize(new Dimension(180, 32));
             acciones.add(cmbProducto);
             acciones.add(new JLabel("Stock"));
-            txtStock.setPreferredSize(new Dimension(80, 32));
+            txtStock.setPreferredSize(new Dimension(90, 32));
             acciones.add(txtStock);
             JButton btnActualizar = primaryButton("Actualizar");
             btnActualizar.addActionListener(e -> actualizar());
@@ -2431,6 +2965,7 @@ public class Project1 {
                 return;
             }
             Datos.STOCK.put(producto, stock);
+            PersistenciaCsv.guardar();
             txtStock.setText("");
             refrescar();
         }
@@ -2451,13 +2986,25 @@ public class Project1 {
             Object seleccionado = cmbProducto.getSelectedItem();
             cmbProducto.removeAllItems();
             modelo.setRowCount(0);
+            int totalPiezas = 0;
+            int disponibles = 0;
+            int bajoStock = 0;
+            double valorInventario = 0;
             for (Object[] mueble : Datos.MUEBLES) {
                 String producto = String.valueOf(mueble[1]);
                 int stock = Datos.stockDe(producto);
+                totalPiezas += stock;
+                if (stock > 0) disponibles++;
+                if (stock > 0 && stock <= 3) bajoStock++;
+                valorInventario += stock * (Double) mueble[3];
                 cmbProducto.addItem(producto);
-                modelo.addRow(new Object[]{mueble[0], producto, stock,
-                        stock > 0 ? "Disponible" : "Agotado"});
+                String estado = stock > 0 ? (stock <= 3 ? "Bajo stock" : "Disponible") : "Agotado";
+                modelo.addRow(new Object[]{mueble[0], producto, stock, estado});
             }
+            lblTotalPiezas.setText(String.valueOf(totalPiezas));
+            lblDisponibles.setText(String.valueOf(disponibles));
+            lblBajoStock.setText(String.valueOf(bajoStock));
+            lblValorInventario.setText(dinero(valorInventario));
             if (seleccionado != null) {
                 cmbProducto.setSelectedItem(seleccionado);
             }
