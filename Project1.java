@@ -20,7 +20,6 @@ import java.util.Set;
 import java.util.prefs.Preferences;
 
 public class Project1 {
-
     public static void main(String[] args) {
         aplicarFuenteArial();
         PersistenciaCsv.cargar();
